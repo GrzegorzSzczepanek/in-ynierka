@@ -1,0 +1,9 @@
+mne
+pandas
+numpy
+scikit-learn
+matplotlib
+seaborn
+packaging
+jupyter
+ipykernel
