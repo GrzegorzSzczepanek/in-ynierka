@@ -4,6 +4,7 @@ numpy
 scikit-learn
 matplotlib
 seaborn
+networkx
 packaging
 jupyter
 ipykernel
