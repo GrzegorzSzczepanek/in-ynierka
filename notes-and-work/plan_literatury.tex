@@ -1,0 +1,186 @@
+\section{Plan literatury i źródeł}
+
+Status: lista robocza do uzupełnienia. Znaczniki przy pozycjach:
+\textbf{[P]} pozycja z formularza tematu (literatura wskazana przez promotora),
+\textbf{[N]} pozycja z moich notatek (zwykle sam adres, brak pełnych danych),
+\textbf{[?]} pozycja podana z pamięci, której autorów, rok, czasopismo,
+strony i DOI trzeba sprawdzić przed wpisaniem do \texttt{bibliography.bib}.
+Przy każdej stronie internetowej uzupełnić datę dostępu.
+Wymagania WIT: co najmniej kilkanaście pozycji, tylko takie, na które
+powołuje się tekst. Cel roboczy: 25 do 40 pozycji.
+
+\subsection{Zasady cytowania}
+
+Transkrypcje filmów wskazanych w notatkach nie były dostępne, więc poniższa
+lista to tematy z ich spisu rozdziałów, które trzeba uzupełnić po obejrzeniu
+lub po wyniku z Gemini.
+
+\begin{itemize}
+    \item Zasady ogólne cytowania i najczęstsze nieporozumienia
+          dotyczące bibliografii. \textbf{TODO.}
+    \item Skąd brać dane bibliograficzne i jak je weryfikować. \textbf{TODO.}
+    \item Książka jednego autora i wielu autorów. \textbf{TODO.}
+    \item Artykuł w czasopiśmie (tom, numer, strony, DOI). \textbf{TODO.}
+    \item Akt prawny (np. zarządzenie ZW 114/2024). \textbf{TODO.}
+    \item Strona internetowa: autor lub organizacja, tytuł, rok, adres,
+          \emph{data dostępu}. \textbf{TODO} (uzupełnić regułami z filmów).
+    \item Preprint (np. medRxiv) i dokumentacja producenta: zaznaczać
+          rodzaj źródła. \textbf{TODO.}
+    \item Cytowanie całej pracy a zakresu stron. \textbf{TODO.}
+    \item Dywizy i półpauzy w zapisie zakresów stron. \textbf{TODO.}
+    \item Menedżer bibliografii (Zotero lub Citavi) i eksport do formatu
+          BibLaTeX. \textbf{TODO.}
+\end{itemize}
+
+Przykładowy wpis strony internetowej w \texttt{bibliography.bib}
+(pola do sprawdzenia w dokumentacji pakietu \texttt{biblatex}):
+
+\begin{verbatim}
+@online{brainaccess_midi,
+  title        = {BrainAccess MIDI},
+  organization = {BrainAccess},
+  year         = {2026},
+  url          = {https://www.brainaccess.ai/hardware/brainaccess-midi/},
+  urldate      = {RRRR-MM-DD},
+}
+\end{verbatim}
+
+\subsection{Źródła według rozdziałów}
+
+\subsubsection*{Wstęp i motywacja}
+
+\begin{itemize}
+    \item \textbf{[P]} Kawala-Sterniuk A. i in. (2021).
+          \emph{Summary of over fifty years with brain-computer interfaces,
+          a review}. Brain Sciences 11(1), 43.
+          \emph{Po co:} ogólne tło BCI.
+    \item \textbf{[P]} Cano S. (2026). \emph{Brain-Computer Interfaces (BCIs)}.
+          \emph{Po co:} tło i etyka BCI (sprawdzić rodzaj publikacji).
+    \item \textbf{[P]} Sharawi M. i in. (2026).
+          \emph{MGaming EEG-BCI}, Journal of Sensors 2026(1), 9983391.
+          \emph{Po co:} przykład aplikacji mobilnej z konsumenckim EEG.
+    \item \textbf{[P]} Chowdhury N.S. i in. (2026).
+          \emph{Evaluation of PainWaive}, medRxiv (preprint).
+          \emph{Po co:} najbliższy przykład zdalnego neurofeedbacku
+          na konsumenckim zestawie, do przeglądu istniejących rozwiązań.
+          Zaznaczyć, że to preprint.
+    \item \textbf{[N]} Przegląd konsumenckiego EEG i fNIRS
+          (PMC10610697). \emph{Po co:} uzasadnienie wyboru sprzętu.
+\end{itemize}
+
+\subsubsection*{Podstawy teoretyczne}
+
+\begin{itemize}
+    \item \textbf{[?]} Klimesch W. (1999). EEG alpha and theta oscillations
+          reflect cognitive and memory performance: a review and analysis.
+          Brain Research Reviews 29, 169--195.
+          \emph{Po co:} rytm alfa i jego interpretacja.
+    \item \textbf{[?]} Enriquez-Geppert S., Huster R.J., Herrmann C.S. (2017).
+          EEG-neurofeedback as a tool to modulate cognition and behavior:
+          a review tutorial. Frontiers in Human Neuroscience 11, 51.
+          \emph{Po co:} zasady i protokoły neurofeedbacku.
+    \item \textbf{[?]} Marzbani H., Marateb H.R., Mansourian M. (2016).
+          Neurofeedback: a comprehensive review on system design,
+          methodology and clinical applications.
+          Basic and Clinical Neuroscience 7(2), 143--158.
+          \emph{Po co:} budowa systemu neurofeedbacku.
+    \item \textbf{[N][?]} Ros T. i in. (2020). Consensus on the reporting and
+          experimental design of clinical and cognitive-behavioural
+          neurofeedback studies (CRED-nf checklist). Brain 143(6).
+          \emph{Po co:} granice wnioskowania i opis eksperymentów.
+    \item \textbf{[N]} Prace o neurofeedbacku alfa
+          (adresy w notatkach: alpha2017, alpha2023) oraz przegląd
+          \emph{Mindfulness-based neurofeedback}.
+          \emph{Uwaga:} \texttt{alpha2019} wygląda na pracę o uczeniu
+          percepcyjnym, nie o neurofeedbacku, więc sprawdzić, czy wspiera
+          wybór pasma stałego lub indywidualnego.
+    \item \textbf{[?]} Urigüen J.A., Garcia-Zapirain B. (2015). EEG artifact
+          removal, state-of-the-art and guidelines.
+          Journal of Neural Engineering 12(3), 031001.
+          \emph{Po co:} artefakty oczne, mięśniowe, ruchowe.
+    \item \textbf{[?]} Welch P.D. (1967). The use of fast Fourier transform
+          for the estimation of power spectra: a method based on time
+          averaging over short, modified periodograms.
+          IEEE Trans. Audio and Electroacoustics 15(2), 70--73.
+          \emph{Po co:} estymacja PSD.
+    \item \textbf{[?]} Oppenheim A.V., Schafer R.W.,
+          \emph{Discrete-Time Signal Processing} (podać wydanie).
+          \emph{Po co:} filtry przyczynowe, projektowanie, stabilność.
+    \item \textbf{[?]} Leys C. i in. (2013). Detecting outliers: do not use
+          standard deviation around the mean, use absolute deviation around
+          the median. Journal of Experimental Social Psychology 49(4),
+          764--766. \emph{Po co:} uzasadnienie normalizacji MAD i mnożnika 1,4826.
+    \item \textbf{[?]} Cohen M.X. (2014). \emph{Analyzing Neural Time Series
+          Data}, MIT Press. \emph{Po co:} skala logarytmiczna mocy, analiza
+          widmowa EEG.
+\end{itemize}
+
+\subsubsection*{Przegląd istniejących rozwiązań}
+
+\begin{itemize}
+    \item Strony producentów konsumenckich systemów (Muse, Neurosity,
+          BrainAccess, BrainBit): \textbf{TODO} wyszukać i zapisać
+          z datą dostępu.
+    \item \textbf{[?]} Schalk G. i in. (2004). BCI2000: a general-purpose
+          brain-computer interface (BCI) system.
+          IEEE Trans. Biomedical Engineering 51(6), 1034--1043.
+    \item \textbf{[?]} Renard Y. i in. (2010). OpenViBE: an open-source
+          software platform to design, test and use brain-computer
+          interfaces in real and virtual environments.
+          Presence 19(1), 35--53.
+    \item Dokumentacja Lab Streaming Layer (strona, data dostępu).
+    \item \textbf{[N]} Prace o grywalizacji i adherencji
+          (adresy w notatkach: game, gamification, adherence).
+          \emph{Po co:} uzasadnienie neuronka i progresji.
+\end{itemize}
+
+\subsubsection*{Projekt systemu}
+
+\begin{itemize}
+    \item Model C4 (Simon Brown), strona c4model.com: \textbf{TODO} data dostępu.
+    \item Opis UML (np. uml-diagrams.org) i dokumentacja PlantUML:
+          \textbf{TODO} data dostępu.
+    \item \textbf{[?]} Stopczynski A. i in., Smartphone Brain Scanner
+          (PLoS ONE, 2014). \emph{Po co:} przykład architektury
+          mobilnego systemu EEG w czasie rzeczywistym.
+          Sprawdzić dokładne dane.
+\end{itemize}
+
+\subsubsection*{Implementacja}
+
+\begin{itemize}
+    \item \textbf{[N]} Dokumentacja i instrukcja BrainAccess MIDI,
+          BrainAccess SDK i aplikacja mobilna (adresy w notatkach).
+    \item Dokumentacja Flutter i Dart; dokumentacja MNE-Python
+          \textbf{[?]} Gramfort A. i in. (2013). MEG and EEG data analysis
+          with MNE-Python. Frontiers in Neuroscience 7, 267.
+\end{itemize}
+
+\subsubsection*{Weryfikacja}
+
+\begin{itemize}
+    \item MNE-Python jako wzorzec referencyjny (jak wyżej).
+    \item CRED-nf jako lista kontrolna opisu eksperymentu.
+    \item Metodyka pomiaru opóźnienia: \textbf{TODO} znaleźć źródło.
+\end{itemize}
+
+\subsubsection*{Etyka i wymagania formalne}
+
+\begin{itemize}
+    \item Wytyczne WIT dotyczące narzędzi AI (adres w notatkach, data dostępu).
+    \item Zarządzenie ZW 114/2024 (wniosek do Komisji ds. Etyki Badań
+          Naukowych) oraz strona WIT o wymaganiach pracy dyplomowej.
+    \item Rekomendowane wymogi edytorskie WIT.
+\end{itemize}
+
+\subsection{Luki do wypełnienia}
+
+\begin{itemize}
+    \item Wpływ opóźnienia informacji zwrotnej na uczenie w neurofeedbacku.
+    \item Wpływ zmian bodźca wzrokowego (jasności ekranu) na moc alfa
+          w okolicy potylicznej.
+    \item Pomiar opóźnienia w systemach BCI i neurofeedbacku.
+    \item Wymagania dotyczące transmisji BLE i strumieniowania
+          do przeglądarki.
+    \item Zasadność stałego pasma 8 do 12 Hz a pasmo indywidualne.
+\end{itemize}

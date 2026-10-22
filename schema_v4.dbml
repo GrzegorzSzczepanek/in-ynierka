@@ -1,0 +1,177 @@
+// ============================================================
+// Neurofeedback alfa: schemat bazy, wersja 3
+// Czasy w sekundach (_s) lub milisekundach (_ms). created_at w UTC.
+// Ograniczenia CHECK (DBML ich nie wyraza) dodamy w SQL:
+//   mood_before, mood_after: 1..5
+// ============================================================
+
+Table protocols {
+  id integer [primary key]
+  name varchar [not null]
+  version integer [not null, default: 1]
+  band_low_hz float [not null]
+  band_high_hz float [not null]
+  hold_time_s float [not null]
+  indexes { (name, version) [unique] }
+}
+
+// Niezmienne wiersze: nie edytujemy, dodajemy nowe.
+Table processing_configs {
+  id integer [primary key]
+  filter_type varchar [not null]
+  filter_order integer [not null]
+  filter_low_hz float [not null]
+  filter_high_hz float [not null]
+  window_s float [not null]
+  step_samples integer [not null]
+  eps float [not null]
+  p0 float [not null]
+  mad_scale float [not null, default: 1.4826]
+  s_min float [not null]
+  map_a float [not null]
+  map_b float [not null]
+  smoothing_lambda float [not null]
+  notch_hz float                          // puste = wylaczony
+  welch_segment_s float [not null]
+  welch_overlap float [not null]
+  alpha_low_hz float [not null]
+  alpha_high_hz float [not null]
+  amp_threshold_uv float [not null]
+  hf_ratio_threshold float [not null]     // udzial mocy 30-40 Hz
+  warmup_skip_s float [not null]
+  calib_min_valid_ratio float [not null]
+  threshold_percentile float [not null]
+  hold_time_s float [not null]
+}
+
+Table avatar_stages {
+  id integer [primary key]
+  name varchar [not null, unique]
+  required_valid_minutes integer [not null]
+  sort_order integer [not null, unique]
+}
+
+Table manufacturers {
+  id integer [primary key]
+  name varchar [not null, unique]
+}
+
+Table device_models {
+  id integer [primary key]
+  manufacturer_id integer [not null, ref: > manufacturers.id]
+  name varchar [not null]
+  channel_count integer [not null]
+  sampling_rate_hz float [not null]
+  indexes { (manufacturer_id, name) [unique] }
+}
+
+Table devices {
+  id integer [primary key]
+  mac varchar [not null, unique]
+  model_id integer [not null, ref: > device_models.id]
+}
+
+Table event_types {
+  id integer [primary key]
+  name varchar [not null, unique]
+  description varchar
+}
+
+Table invalid_reasons {
+  id integer [primary key]
+  name varchar [not null, unique]
+  description varchar // opis dla badacza; komunikaty w plikach lokalizacji
+}
+
+Table sessions {
+  id integer [primary key]
+  protocol_id integer [not null, ref: > protocols.id]
+  processing_config_id integer [not null, ref: > processing_configs.id]
+  device_id integer [not null, ref: > devices.id]
+  created_at datetime [not null]          // UTC
+  planned_duration_s integer [not null]
+  actual_duration_s integer               // puste do konca sesji
+  was_aborted boolean [not null, default: false] // ustawiane na koncu sesji
+  mood_before integer                     // 1..5, moze byc puste
+  mood_after integer                      // 1..5, moze byc puste
+  app_version varchar [not null]
+  firmware varchar
+  raw_file_path varchar [not null]
+}
+
+// Kanaly uzyte w sesji (zamiast listy tekstowej, 1NF)
+Table session_channels {
+  id integer [primary key]
+  session_id integer [not null, ref: > sessions.id]
+  channel_name varchar [not null]         // np. O1, O2
+  indexes { (session_id, channel_name) [unique] }
+}
+
+Table calibrations {
+  id integer [primary key]
+  session_id integer [not null, ref: > sessions.id]
+  attempt_no integer [not null]
+  duration_s integer [not null]
+  valid_signal_s integer [not null, default: 0]
+  baseline_median float                   // puste przy nieudanej probie
+  baseline_mad float                      // puste przy nieudanej probie
+  threshold_y float                       // percentyl progu, puste przy nieudanej probie
+  failure_reason varchar                  // przyczyna nieudanej kalibracji
+  succeeded boolean [not null, default: false]
+  indexes { (session_id, attempt_no) [unique] }
+}
+
+Table blocks {
+  id integer [primary key]
+  session_id integer [not null, ref: > sessions.id]
+  calibration_id integer [not null, ref: > calibrations.id] // uzyta kalibracja
+  block_no integer [not null]
+  planned_duration_s integer [not null]
+  actual_duration_s integer
+  threshold_used float [not null]
+  valid_signal_s integer [not null, default: 0]
+  time_above_threshold_s float [not null, default: 0] // celowa denormalizacja
+  reward_count integer [not null, default: 0]         // celowa denormalizacja
+  indexes { (session_id, block_no) [unique] }
+}
+
+Table block_events {
+  id integer [primary key]
+  block_id integer [not null, ref: > blocks.id]
+  event_type_id integer [not null, ref: > event_types.id]
+  occurred_at_ms integer [not null]       // od poczatku bloku
+  details varchar
+  indexes { (block_id, occurred_at_ms) }
+}
+
+Table invalid_intervals {
+  id integer [primary key]
+  block_id integer [ref: > blocks.id]               // dokladnie jedno z: block_id, calibration_id
+  calibration_id integer [ref: > calibrations.id]
+  reason_id integer [not null, ref: > invalid_reasons.id]
+  start_ms integer [not null]
+  end_ms integer [not null]
+}
+
+// Model odczytu pod wykresy. Jeden wiersz = jedna sesja.
+// Dzienne sumy daje widok z GROUP BY po session_date.
+Table session_stats {
+  id integer [primary key]
+  session_id integer [not null, unique, ref: - sessions.id]
+  session_date date [not null]
+  valid_minutes float [not null]
+  blocks_total integer [not null]
+  blocks_goal_reached integer [not null]
+}
+
+Table settings {
+  key varchar [primary key]
+  value varchar [not null]
+}
+
+// Czas poprawnego treningu (minuty):
+//  SELECT SUM(valid_signal_s)/60.0 FROM blocks;
+// Odblokowane etapy (liczone):
+//  SELECT * FROM avatar_stages
+//  WHERE required_valid_minutes <=
+//   (SELECT SUM(valid_signal_s)/60.0 FROM blocks);

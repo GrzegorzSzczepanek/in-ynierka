@@ -1,0 +1,137 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="uc" name="Przypadki użycia">
+    <mxGraphModel dx="1175" dy="1293" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sys" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=16;fillColor=none;strokeColor=#000000;strokeWidth=2;" value="Multiplatformowa aplikacja do neurofeedbacku" vertex="1">
+          <mxGeometry height="980" width="420" x="250" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_conn" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Wybierz i połącz urządzenie" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_qual" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Sprawdź jakość sygnału" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_cal" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Skalibruj urządzenie" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_sess" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Przeprowadź sesję treningową" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_mood" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Oceń samopoczucie przed i po sesji" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_stop" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Zakończ lub przerwij sesję" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_stat" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Sprawdź statystyki bieżącej sesji" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_hist" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Przeglądaj historię sesji" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="790" as="geometry" />
+        </mxCell>
+        <mxCell id="uc_exp" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;" value="Wyeksportuj dane" vertex="1">
+          <mxGeometry height="70" width="260" x="330" y="890" as="geometry" />
+        </mxCell>
+        <mxCell id="actU" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;strokeColor=#000000;" value="&lt;span&gt;Użytkownik&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="40" x="30" y="885" as="geometry" />
+        </mxCell>
+        <mxCell id="actC" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;strokeColor=#000000;" value="Czepek EEG" vertex="1">
+          <mxGeometry height="80" width="40" x="840" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_conn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="105" y="125" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_qual">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_cal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_sess">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="425" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;" target="uc_mood">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="525" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_stop">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="200" y="625" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_stat">
+          <mxGeometry relative="1" x="-0.0007" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="725" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_hist">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="825" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="actU" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_exp">
+          <mxGeometry relative="1" x="-0.0068" as="geometry">
+            <Array as="points">
+              <mxPoint x="105" y="925" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="actC" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_conn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="125" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="actC" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_qual">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="actC" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_cal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="actC" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1;rounded=0;curved=0;" target="uc_sess">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="425" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
