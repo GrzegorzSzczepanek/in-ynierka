@@ -1,0 +1,46 @@
+@startuml
+title Stany sesji treningowej (1/2): przebieg sesji
+skinparam state {
+  BackgroundColor White
+  BorderColor #444444
+}
+hide empty description
+
+[*] --> Aktywna : / nr = 1
+
+state Aktywna {
+  [*] --> WyborUrzadzenia
+  state "Wybór urządzenia" as WyborUrzadzenia
+  state "Łączenie" as Laczenie
+  state "Połączony\n(szczegóły na diagramie 2/2)" as Polaczony
+  state "Ponowne łączenie" as Ponowne
+  state "Połączenie utracone" as Utracone
+
+  Polaczony : do / zapisuj surowe EEG
+
+  WyborUrzadzenia --> Laczenie : wybrano urządzenie / próby = 0
+  Laczenie --> Laczenie : błąd lub timeout\n[próby < 3] / próby++
+  Laczenie --> WyborUrzadzenia : błąd lub timeout\n[próby = 3]
+  Laczenie --> Polaczony : połączono\n(start od Kontroli kontaktu)
+
+  Polaczony --> Ponowne : rozłączono / próby = 0
+  Ponowne --> Ponowne : after(15 s)\n[próby < 3] / próby++
+  Ponowne --> Polaczony : połączono\n(start od Kalibracji, blok nr od początku)
+  Ponowne --> Utracone : after(15 s)\n[próby = 3]
+  Utracone --> Ponowne : ponów / próby = 0
+}
+
+state "Podsumowanie" as Podsumowanie
+state "Zakończona" as Zakonczona
+state "Przerwana" as Przerwana
+state wybor <<choice>>
+
+Polaczony --> Podsumowanie : ostatni blok ukończony
+Podsumowanie --> Zakonczona : zapisano
+Zakonczona --> [*]
+
+Aktywna --> wybor : zakończ / zapisz sesję
+wybor --> Przerwana : [ukończony >= 1 blok]\n/ nalicz postęp
+wybor --> Przerwana : [else]
+Przerwana --> [*]
+@enduml

@@ -32,3 +32,15 @@ Kod eksploracyjny / roboczy trzymamy w modułach, żeby dało się go testować 
 
 Wybierz kernel `Python (in-ynierka)` w Jupyterze / VS Code, upewnij się że dane EEGMAT są
 w `datasets/physionet.org/files/eegmat/1.0.0/`, i odpal notebooki w kolejności 01 → 02.
+
+## Pozostałe katalogi
+
+```
+docs/diagrams/      — diagramy (draw.io, PlantUML, DBML, schematy bazy)
+docs/formalities/   — wnioski do komisji bioetycznej: szablony i wypełnione
+praca/              — źródła pracy (LaTeX); praca_overleaf/ to jej kopia z Overleafa
+neurotchi-design/   — makiety UI
+notes-and-work/     — szablony dyplomowe, plan literatury
+archive/            — stare notebooki i paczki zip
+vendor/             — lokalne binaria BrainAccess (ignorowane w git)
+```

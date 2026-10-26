@@ -1,0 +1,40 @@
+@startuml
+title Stany sesji treningowej (2/2): wnętrze stanu Połączony
+skinparam state {
+  BackgroundColor White
+  BorderColor #444444
+}
+hide empty description
+skinparam nodesep 40
+skinparam ranksep 40
+
+state "Połączony" as Polaczony {
+  state "z Łączenia" as wej1 <<entryPoint>>
+  state "z Ponownego łączenia" as wej2 <<entryPoint>>
+  state "ostatni blok ukończony" as wyj <<exitPoint>>
+
+  state "Kontrola kontaktu" as KontrolaKontaktu
+  state "Kalibracja" as Kalibracja
+
+  wej1 --> KontrolaKontaktu
+  wej2 --> Kalibracja
+  KontrolaKontaktu --> Kalibracja : kontakt OK
+  Kalibracja --> Kalibracja : koniec kalibracji\n[ważnych okien < 90%]
+  Kalibracja --> Trening : koniec kalibracji\n[ważnych okien >= 90%]
+
+  state "Trening" as Trening {
+    [*] --> Blok
+    state "Blok" as Blok {
+      [*] --> FeedbackAktywny
+      state "Feedback aktywny" as FeedbackAktywny
+      state "Feedback wstrzymany" as FeedbackWstrzymany
+      FeedbackAktywny --> FeedbackWstrzymany : okno\nnieważne
+      FeedbackWstrzymany --> FeedbackAktywny : okno\nważne
+    }
+    state "Przerwa między blokami" as Przerwa
+    Blok --> Przerwa : koniec bloku\n[nr < 3] / nr++
+    Przerwa --> Blok : koniec przerwy
+    Blok --> wyj : koniec bloku\n[nr = 3]
+  }
+}
+@enduml

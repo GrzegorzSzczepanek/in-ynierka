@@ -220,3 +220,6 @@ __marimo__/
 
 datasets
 dataset
+# macOS / vendor binaries
+.DS_Store
+vendor/
