@@ -1,0 +1,24 @@
+{
+  "first_run": {
+    "connect": 0,
+    "load_config": 0,
+    "start_stream": 0
+  },
+  "detect": {
+    "chunks_before": 82,
+    "last_chunk_after_start_s": 8.255157167091966,
+    "disconnect_callback_after_last_chunk_s": 0.7740316248964518,
+    "is_connected_false_after_last_chunk_s": 0.8341361668426543,
+    "silence_at_end_s": 0.8341562079731375,
+    "disconnect_callback_fired": true,
+    "is_connected_at_end": false,
+    "stop_stream_err_after_loss": 3
+  },
+  "reconnect_same_manager": {
+    "connect": 0,
+    "load_config": 0,
+    "start_stream": 0,
+    "chunks_10s": 100,
+    "first_sample_number": 0
+  }
+}

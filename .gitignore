@@ -223,3 +223,4 @@ dataset
 # macOS / vendor binaries
 .DS_Store
 vendor/
+scripts/brainaccess_probe/probe_dump*.csv
