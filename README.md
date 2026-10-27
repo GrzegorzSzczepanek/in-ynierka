@@ -36,11 +36,25 @@ w `datasets/physionet.org/files/eegmat/1.0.0/`, i odpal notebooki w kolejności 
 ## Pozostałe katalogi
 
 ```
-docs/diagrams/      — diagramy (draw.io, PlantUML, DBML, schematy bazy)
+docs/diagrams/      — diagramy (draw.io, PlantUML, DBML, schematy bazy); aktualne DSP: dsp_A_jakosc_v3, dsp_B_feedback_v3
 docs/formalities/   — wnioski do komisji bioetycznej: szablony i wypełnione
-praca/              — źródła pracy (LaTeX); praca_overleaf/ to jej kopia z Overleafa
+praca/              — źródła pracy (LaTeX)
 neurotchi-design/   — makiety UI
 notes-and-work/     — szablony dyplomowe, plan literatury
-archive/            — stare notebooki i paczki zip
+scripts/brainaccess_probe/ — sonda SDK BrainAccess (ctypes, libbacore) i fakty_brainaccess.md
+archive/            — stare notebooki i paczki zip (w tym kopia pracy z Overleafa)
 vendor/             — lokalne binaria BrainAccess (ignorowane w git)
 ```
+
+## Sonda BrainAccess
+
+Skrypty w `scripts/brainaccess_probe/` mierzą, co faktycznie dostarcza SDK (`libbacore` 4.0.0, macOS).
+Uruchamiaj z Terminal.app (aplikacja musi mieć uprawnienie Bluetooth), po zdjęciu kwarantanny z SDK w `vendor/`:
+
+```
+python3 -u probe.py --device "BA MAXI 012" --seconds 60 --accel --tag _head
+python3 analyze.py --tag _head
+python3 -u disconnect_test.py --device "BA MAXI 012"
+```
+
+Wyniki: `fakty_brainaccess.md`. Surowe nagrania `probe_dump*.csv` są poza gitem.
