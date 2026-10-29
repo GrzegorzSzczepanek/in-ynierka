@@ -14,6 +14,7 @@ Future<void> main(List<String> args) async {
   final source = BrainAccessMacSource(deviceName: device, libPath: lib);
   var packets = 0, samples = 0, gaps = 0;
   var first = true;
+  List<int>? contactTrue;
   final sw = Stopwatch()..start();
   final done = source.items.forEach((i) {
     switch (i) {
@@ -22,6 +23,13 @@ Future<void> main(List<String> args) async {
       case EegPacket():
         packets++;
         samples += i.length;
+        final ct = i.contact;
+        if (ct != null) {
+          final acc = contactTrue ??= List.filled(ct.length, 0);
+          for (var c = 0; c < ct.length; c++) {
+            acc[c] += ct[c].where((v) => v).length;
+          }
+        }
         if (first) {
           first = false;
           stdout.writeln('pierwsza paczka po ${sw.elapsedMilliseconds} ms, probka ${i.firstSample}');
@@ -37,5 +45,13 @@ Future<void> main(List<String> args) async {
   await Future<void>.delayed(Duration(seconds: seconds));
   await source.stop();
   await done;
+  final acc = contactTrue;
+  if (acc != null && samples > 0) {
+    final withContact = [
+      for (var c = 0; c < acc.length; c++)
+        if (acc[c] / samples > 0.9) 'ch${c + 1}'
+    ];
+    stdout.writeln('kontakt (>90% czasu): ${withContact.isEmpty ? 'zaden kanal' : withContact.join(', ')}');
+  }
   stdout.writeln('paczki=$packets probki=$samples luki=$gaps czas=${sw.elapsed.inSeconds} s');
 }

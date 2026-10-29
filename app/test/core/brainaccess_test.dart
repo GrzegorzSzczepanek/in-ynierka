@@ -35,6 +35,22 @@ void main() {
     expect((after.last as EegPacket).samples.length, 2);
   });
 
+  test('ChunkAssembler przekazuje kontakt elektrod na kanal i probke', () {
+    final contact = Uint8List.fromList([1, 1, 0, 0, 0, 1]);
+    final out = ChunkAssembler().chunk(
+        firstSample: 0,
+        tRecv: 0,
+        flat: Float64List(6),
+        size: 3,
+        channels: 2,
+        contact: contact);
+    final p = out.single as EegPacket;
+    expect(p.contact, [
+      [true, true, false],
+      [false, false, true],
+    ]);
+  });
+
   test('biblioteka libbacore laduje sie, init i wersja 4.0.0', () {
     if (!File(_lib).existsSync()) {
       markTestSkipped('brak libbacore w vendor/');
@@ -55,7 +71,7 @@ Future<void> _fakeWorker(List<Object> args) async {
   final out = args[0] as SendPort;
   final lib = DynamicLibrary.open(args[1] as String);
   final fire = lib.lookupFunction<_FireNative, _Fire>('fire');
-  final cb = createChunkCallback(out, 0, 1, 1);
+  final cb = createChunkCallback(out, 0, 1, 1, -1);
   fire(cb.nativeFunction);
   await Future<void>.delayed(const Duration(milliseconds: 500));
   cb.close();
