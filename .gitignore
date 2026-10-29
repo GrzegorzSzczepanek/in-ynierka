@@ -224,3 +224,6 @@ dataset
 .DS_Store
 vendor/
 scripts/brainaccess_probe/probe_dump*.csv
+
+# app/lib to kod Flutter, a nie katalog biblioteki Pythona
+!/app/lib/
