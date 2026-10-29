@@ -10,6 +10,8 @@ Praca inżynierska: multiplatformowa aplikacja do neurofeedbacku alfa na konsume
 app/                        aplikacja Flutter (macOS, Android)
   lib/core/eeg/               EegSource, StreamItem, Mock i Replay
   lib/core/dsp/               filtr, Welch, potok alfa, kalibracja, mapowanie, nagroda
+  lib/core/session/           sesja: kontakt, kalibracja, bloki, przerwy, ponowne łączenie
+  lib/core/db/                SQLite wg docs/diagrams/schema_v5.dbml, zapis sesji i surowego EEG
   test/                       testy, w tym zgodność z SciPy (test/fixtures)
 design/                     makiety UI (neuronek, ekrany), zasady w DESIGN_RULES.md
 docs/                       diagramy, notatki, wnioski, bibliografia
