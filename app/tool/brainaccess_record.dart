@@ -17,7 +17,8 @@ Future<void> main(List<String> args) async {
       '../vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib';
   Directory(File(args[2]).parent.path).createSync(recursive: true);
 
-  final source = BrainAccessMacSource(deviceName: args[0], libPath: lib);
+  final source = BrainAccessMacSource(
+      deviceName: args[0], libPath: lib, biasChannels: _bias(args, 3));
   final writer = RecordingWriter(args[2]);
   var gaps = 0;
   final first = Completer<void>();
@@ -39,3 +40,8 @@ Future<void> main(List<String> args) async {
       'czas=${(writer.samples / 250).toStringAsFixed(1)} s luki=$gaps '
       'rozlaczenie=${disconnected ?? 'brak'}');
 }
+
+/// Opcjonalny argument: indeksy kanalow BIAS od 0, np. 1,9.
+List<int> _bias(List<String> args, int at) => args.length > at && args[at].isNotEmpty
+    ? args[at].split(',').map(int.parse).toList()
+    : const [];

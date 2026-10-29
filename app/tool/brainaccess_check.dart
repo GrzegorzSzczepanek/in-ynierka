@@ -11,7 +11,8 @@ Future<void> main(List<String> args) async {
   final lib = Platform.environment['BACORE_LIB'] ??
       '../vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib';
 
-  final source = BrainAccessMacSource(deviceName: device, libPath: lib);
+  final source = BrainAccessMacSource(
+      deviceName: device, libPath: lib, biasChannels: _bias(args, 2));
   var packets = 0, samples = 0, gaps = 0;
   var first = true;
   List<int>? contactTrue;
@@ -55,3 +56,8 @@ Future<void> main(List<String> args) async {
   }
   stdout.writeln('paczki=$packets probki=$samples luki=$gaps czas=${sw.elapsed.inSeconds} s');
 }
+
+/// Opcjonalny argument: indeksy kanalow BIAS od 0, np. 1,9.
+List<int> _bias(List<String> args, int at) => args.length > at && args[at].isNotEmpty
+    ? args[at].split(',').map(int.parse).toList()
+    : const [];
