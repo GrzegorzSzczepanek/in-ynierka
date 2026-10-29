@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../core/db/session_repository.dart';
 import '../core/session/session_controller.dart';
 import '../core/session/session_models.dart';
+import '../core/session/training_protocol.dart';
 
 /// Zaleznosci aplikacji: baza, zrodlo EEG i konfiguracja sesji.
 class AppServices {
@@ -14,7 +15,7 @@ class AppServices {
     this.deviceIdentifier,
     this.deviceModel = 'MAXI',
     this.appVersion = '0.1.0',
-    this.trainingChannels = const ['O1', 'O2'],
+    this.channelsOverride,
     this.configOverride,
     this.sourceLabel = 'Demo',
   });
@@ -27,12 +28,16 @@ class AppServices {
   final String deviceModel;
   final String appVersion;
   final String sourceLabel;
-  final List<String> trainingChannels;
+  /// Nadpisanie kanalow treningowych (np. nazwy kanalow czepka bez mapowania 10-20).
+  final List<String>? channelsOverride;
   final SessionConfig? configOverride;
 
-  SessionConfig get sessionConfig =>
+  SessionConfig sessionConfigFor(TrainingProtocol protocol) =>
       configOverride ??
-      repository.sessionConfig(SessionConfig(trainingChannels: trainingChannels));
+      repository.sessionConfig(
+          SessionConfig(protocol: protocol, trainingChannels: channelsOverride));
+
+  SessionConfig get sessionConfig => sessionConfigFor(TrainingProtocol.relaks);
 }
 
 class ServicesScope extends InheritedWidget {

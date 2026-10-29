@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/session/training_protocol.dart';
 import '../neuronek/neuronek.dart';
 import '../theme/pixel_theme.dart';
 
@@ -29,11 +30,15 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key,
     required this.data,
+    required this.selected,
+    required this.onSelect,
     required this.onStart,
     required this.onProgress,
   });
 
   final HomeData data;
+  final TrainingProtocol selected;
+  final ValueChanged<TrainingProtocol> onSelect;
   final VoidCallback onStart;
   final VoidCallback onProgress;
 
@@ -66,7 +71,7 @@ class HomeScreen extends StatelessWidget {
                 const Neuronek(height: 150),
                 const SizedBox(height: 16),
                 Text(
-                  'Dziś trening alfa, około ${data.trainingMinutes} minut. '
+                  'Dziś ${selected.title.toLowerCase()}, około ${data.trainingMinutes} minut. '
                   'Najpierw sprawdzę, czy elektrody mają kontakt.',
                   textAlign: TextAlign.center,
                   style: Px.secondary.copyWith(color: Px.ink),
@@ -74,22 +79,40 @@ class HomeScreen extends StatelessWidget {
               ]),
             ),
             const SizedBox(height: 24),
-            Text('Trening', style: Px.h2),
+            Text('Wybierz trening', style: Px.h2),
             const SizedBox(height: 12),
-            PixelCard(
-              selected: true,
-              child: Row(children: [
-                Container(width: 18, height: 18, color: Px.accent),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Trening alfa', style: Px.text(22)),
-                    Text('alfa 8–12 Hz, O1 O2', style: Px.caption),
-                  ]),
+            for (final p in TrainingProtocol.all) ...[
+              GestureDetector(
+                onTap: () => onSelect(p),
+                child: Semantics(
+                  button: true,
+                  selected: p == selected,
+                  label: '${p.title}, ${p.subtitle}',
+                  child: PixelCard(
+                    selected: p == selected,
+                    child: Row(children: [
+                      Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: p == selected ? Px.accent : Px.panel,
+                          border: Border.all(color: Px.ink, width: 2),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(p.title, style: Px.text(22)),
+                          Text(p.subtitle, style: Px.caption),
+                        ]),
+                      ),
+                      Text('${data.trainingMinutes} min', style: Px.text(18)),
+                    ]),
+                  ),
                 ),
-                Text('${data.trainingMinutes} min', style: Px.text(18)),
-              ]),
-            ),
+              ),
+              const SizedBox(height: 8),
+            ],
             const SizedBox(height: 24),
             Row(children: [
               Expanded(

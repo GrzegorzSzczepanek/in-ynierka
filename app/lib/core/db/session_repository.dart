@@ -3,6 +3,7 @@ import 'package:sqlite3/sqlite3.dart';
 import '../dsp/processing_config.dart';
 import '../eeg/stream_item.dart';
 import '../session/session_models.dart';
+import '../session/training_protocol.dart';
 import 'app_database.dart';
 
 class AvatarStage {
@@ -20,8 +21,10 @@ class SessionRow {
     required this.status,
     required this.validMinutes,
     required this.blocksTotal,
+    this.protocol = TrainingProtocol.relaks,
   });
 
+  final TrainingProtocol protocol;
   final int id;
   final DateTime createdAt;
   final String status;
@@ -269,8 +272,9 @@ class SessionRepository {
 
   List<SessionRow> history() => [
         for (final r in _db.select(
-            'SELECT s.id, s.created_at, s.status, st.valid_minutes, st.blocks_total '
+            'SELECT s.id, s.created_at, s.status, st.valid_minutes, st.blocks_total, p.name AS protocol_name '
             'FROM sessions s JOIN session_stats st ON st.session_id = s.id '
+            'JOIN protocols p ON p.id = s.protocol_id '
             'ORDER BY s.created_at DESC'))
           SessionRow(
             id: r['id'] as int,
@@ -278,6 +282,7 @@ class SessionRepository {
             status: r['status'] as String,
             validMinutes: (r['valid_minutes'] as num).toDouble(),
             blocksTotal: r['blocks_total'] as int,
+            protocol: TrainingProtocol.byDbName(r['protocol_name'] as String),
           ),
       ];
 
@@ -302,7 +307,8 @@ class SessionRepository {
     double d(String k, double fallback) => double.tryParse(setting(k) ?? '') ?? fallback;
     return SessionConfig(
       processing: base.processing,
-      trainingChannels: base.trainingChannels,
+      protocol: base.protocol,
+      trainingChannels: base.channelsOverride,
       calibrationS: d('default_calibration_s', base.calibrationS),
       blocks: d('default_blocks', base.blocks.toDouble()).round(),
       blockS: d('default_block_s', base.blockS),

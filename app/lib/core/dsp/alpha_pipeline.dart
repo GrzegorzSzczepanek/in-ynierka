@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../eeg/stream_item.dart';
+import '../session/training_protocol.dart';
 import 'biquad.dart';
 import 'processing_config.dart';
 import 'welch.dart';
@@ -33,12 +34,14 @@ class AlphaPipeline {
     required this.trainingChannels,
     this.saturationUv = 562000.0,
     this.flatRangeUv = 0.5,
+    this.kind = FeatureKind.alphaPower,
   });
 
   final ProcessingConfig config;
   final List<String> trainingChannels;
   final double saturationUv;
   final double flatRangeUv;
+  final FeatureKind kind;
 
   late int _fs;
   late int _windowSamples;
@@ -136,8 +139,15 @@ class AlphaPipeline {
     var sum = 0.0;
     for (final f in _filt) {
       final psd = _welch.psd(f);
-      final p = _welch.bandPower(psd, config.alphaLowHz, config.alphaHighHz);
-      sum += log((p + config.eps) / config.p0);
+      final alpha = _welch.bandPower(psd, config.alphaLowHz, config.alphaHighHz);
+      switch (kind) {
+        case FeatureKind.alphaPower:
+          sum += log((alpha + config.eps) / config.p0);
+        case FeatureKind.betaOverAlphaTheta:
+          final theta = _welch.bandPower(psd, 4, config.alphaLowHz);
+          final beta = _welch.bandPower(psd, 13, 30);
+          sum += log((beta + config.eps) / (alpha + theta + config.eps));
+      }
     }
     return WindowResult(
       sampleEnd: end,

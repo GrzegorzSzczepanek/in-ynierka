@@ -8,6 +8,7 @@ import 'package:neurotchi/core/dsp/processing_config.dart';
 import 'package:neurotchi/core/eeg/mock_source.dart';
 import 'package:neurotchi/core/session/session_controller.dart';
 import 'package:neurotchi/core/session/session_models.dart';
+import 'package:neurotchi/core/session/training_protocol.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 const cfg = SessionConfig(
@@ -188,5 +189,36 @@ void main() {
     final c = repo.sessionConfig(const SessionConfig());
     expect(c.blockS, 120);
     expect(c.blocks, 3);
+  });
+
+  test('trening skupienia: protokol, kanaly i historia z nazwa treningu', () async {
+    const focus = SessionConfig(
+      protocol: TrainingProtocol.skupienie,
+      calibrationS: 20,
+      blockS: 10,
+      breakS: 4,
+      contactSettleS: 1,
+      contactStableS: 1,
+    );
+    final p = SessionPersistence.begin(
+        repo: repo, config: focus, sourceType: 'mock', appVersion: '0', rawDir: tmp.path);
+    final c = SessionController(
+      sourceFactory: () => MockSource(
+        duration: const Duration(seconds: 200),
+        alphaAmplitudeUv: (_) => 10,
+        betaAmplitudeUv: (t) => t < 25 ? 3 : 9,
+        noiseUv: 1,
+      ),
+      config: focus,
+      onItem: p.onItem,
+      delay: instant,
+    );
+    final r = await c.run();
+    await p.finish(r);
+    expect(r.status, SessionStatus.completed);
+    expect(q('SELECT name FROM protocols').map((x) => x['name']), ['Trening skupienia']);
+    expect(q('SELECT channel_name FROM session_channels ORDER BY channel_name')
+        .map((x) => x['channel_name']), ['C3', 'C4', 'F3', 'F4']);
+    expect(repo.history().single.protocol.title, 'Skupienie');
   });
 }

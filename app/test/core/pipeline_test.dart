@@ -7,6 +7,7 @@ import 'package:neurotchi/core/dsp/processing_config.dart';
 import 'package:neurotchi/core/eeg/eeg_source.dart';
 import 'package:neurotchi/core/eeg/mock_source.dart';
 import 'package:neurotchi/core/eeg/stream_item.dart';
+import 'package:neurotchi/core/session/training_protocol.dart';
 
 const cfg = ProcessingConfig();
 
@@ -158,5 +159,28 @@ void main() {
       if (d.push(seq[i])) rewards.add(i);
     }
     expect(rewards, [11, 23]);
+  });
+
+  test('cecha skupienia: ln(beta/(alfa+theta)) rosnie z moca beta', () async {
+    Future<double> focus(double beta) async {
+      final src = MockSource(
+        duration: const Duration(seconds: 12),
+        alphaAmplitudeUv: (_) => 10,
+        betaAmplitudeUv: (_) => beta,
+        noiseUv: 1,
+      );
+      final pipe = AlphaPipeline(cfg,
+          trainingChannels: TrainingProtocol.skupienie.channels,
+          kind: TrainingProtocol.skupienie.kind);
+      final out = <WindowResult>[];
+      final done = src.items.forEach((i) => out.addAll(pipe.push(i)));
+      await src.start();
+      await done;
+      return out.where((r) => r.valid).last.feature!;
+    }
+
+    final low = await focus(2);
+    final high = await focus(8);
+    expect(high - low, closeTo(2 * log(4), 0.3));
   });
 }

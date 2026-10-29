@@ -37,7 +37,7 @@ class SessionPersistence {
   }) {
     Directory(rawDir).createSync(recursive: true);
     final id = repo.startSession(
-      protocolId: repo.ensureProtocol(config.processing),
+      protocolId: repo.ensureProtocol(config.processing, name: config.protocol.dbName),
       sourceType: sourceType,
       deviceId: sourceType == 'device'
           ? repo.ensureDevice(identifier: deviceIdentifier!, model: deviceModel)

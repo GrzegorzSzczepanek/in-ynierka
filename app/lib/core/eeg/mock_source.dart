@@ -8,11 +8,20 @@ class MockSource implements EegSource {
   MockSource({
     this.fs = 250,
     this.chunkSize = 25,
-    this.channels = const [Channel('O1'), Channel('O2')],
+    this.channels = const [
+      Channel('O1'),
+      Channel('O2'),
+      Channel('F3'),
+      Channel('F4'),
+      Channel('C3'),
+      Channel('C4'),
+    ],
     this.duration,
     this.realtime = false,
     this.alphaAmplitudeUv = _defaultAmplitude,
     this.alphaHz = 10.0,
+    this.betaAmplitudeUv = _noBeta,
+    this.betaHz = 20.0,
     this.noiseUv = 3.0,
     this.dropChunks = const {},
     this.disconnectAfterChunk,
@@ -21,6 +30,7 @@ class MockSource implements EegSource {
   });
 
   static double _defaultAmplitude(double t) => 10.0;
+  static double _noBeta(double t) => 0.0;
 
   final int fs;
   final int chunkSize;
@@ -29,6 +39,10 @@ class MockSource implements EegSource {
   final bool realtime;
   final double Function(double t) alphaAmplitudeUv;
   final double alphaHz;
+
+  /// Skladowa beta (np. dla treningu skupienia).
+  final double Function(double t) betaAmplitudeUv;
+  final double betaHz;
   final double noiseUv;
 
   /// Numery paczek (od 0), ktore zrodlo pomija, tworzac luke w numeracji.
@@ -122,6 +136,8 @@ class MockSource implements EegSource {
   double _sample(double t, int channel, Random rng) {
     final a = alphaAmplitudeUv(t);
     final noise = (rng.nextDouble() * 2 - 1) * noiseUv * sqrt(3);
-    return a * sin(2 * pi * alphaHz * t + channel * 0.3) + noise;
+    return a * sin(2 * pi * alphaHz * t + channel * 0.3) +
+        betaAmplitudeUv(t) * sin(2 * pi * betaHz * t + channel * 0.5) +
+        noise;
   }
 }

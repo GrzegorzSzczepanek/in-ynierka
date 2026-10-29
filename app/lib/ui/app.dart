@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/session/training_protocol.dart';
 import 'app_services.dart';
 import 'screens/home_screen.dart';
 import 'screens/progress_screen.dart';
@@ -32,6 +33,8 @@ class _HomeRoute extends StatefulWidget {
 }
 
 class _HomeRouteState extends State<_HomeRoute> {
+  TrainingProtocol _selected = TrainingProtocol.relaks;
+
   Future<void> _open(Widget screen) async {
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
     if (mounted) setState(() {});
@@ -40,14 +43,16 @@ class _HomeRouteState extends State<_HomeRoute> {
   @override
   Widget build(BuildContext context) {
     final services = ServicesScope.of(context);
-    final config = services.sessionConfig;
+    final config = services.sessionConfigFor(_selected);
     return HomeScreen(
       data: homeData(
         services.repository,
         trainingMinutes: (config.blocks * config.blockS / 60).round(),
         sourceLabel: services.sourceLabel,
       ),
-      onStart: () => _open(const SessionFlowScreen()),
+      selected: _selected,
+      onSelect: (p) => setState(() => _selected = p),
+      onStart: () => _open(SessionFlowScreen(protocol: _selected)),
       onProgress: () => _open(Builder(
         builder: (ctx) => ProgressScreen(
           data: progressData(services.repository, DateTime.now()),

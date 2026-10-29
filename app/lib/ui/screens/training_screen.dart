@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/session/session_models.dart';
+import '../../core/session/training_protocol.dart';
 import '../format.dart';
 import '../neuronek/neuronek.dart';
 import '../theme/pixel_theme.dart';
@@ -20,8 +21,10 @@ class TrainingScreen extends StatelessWidget {
     required this.snapshot,
     required this.log,
     required this.onFinish,
+    this.protocol = TrainingProtocol.relaks,
   });
 
+  final TrainingProtocol protocol;
   final SessionSnapshot snapshot;
   final List<TrainingLogEntry> log;
   final VoidCallback onFinish;
@@ -51,8 +54,8 @@ class TrainingScreen extends StatelessWidget {
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(inBreak ? 'Przerwa' : 'Trening alfa', style: Px.h1),
-                Text('alfa 8–12 Hz, O1 O2', style: Px.caption),
+                Text(inBreak ? 'Przerwa' : protocol.title, style: Px.h1),
+                Text(protocol.subtitle, style: Px.caption),
               ]),
             ),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [

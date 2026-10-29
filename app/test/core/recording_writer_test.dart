@@ -23,7 +23,7 @@ void main() {
 
     final rec = await Recording.load(base);
     expect(rec.info.fs, 250);
-    expect([for (final c in rec.info.channels) c.name], ['O1', 'O2']);
+    expect([for (final c in rec.info.channels) c.name], ['O1', 'O2', 'F3', 'F4', 'C3', 'C4']);
     expect(rec.sampleNumbers.length, writer.samples);
 
     final replay = ReplaySource(rec);

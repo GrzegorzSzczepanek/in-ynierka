@@ -133,7 +133,7 @@ class ProgressScreen extends StatelessWidget {
               decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Px.soft))),
               child: Row(children: [
                 Expanded(
-                  child: Text('Trening alfa, ${s.createdAt.toLocal().day}.${s.createdAt.toLocal().month.toString().padLeft(2, '0')}',
+                  child: Text('${s.protocol.title}, ${s.createdAt.toLocal().day}.${s.createdAt.toLocal().month.toString().padLeft(2, '0')}',
                       style: Px.body),
                 ),
                 Text(mSs(s.validMinutes * 60), style: Px.text(16, weight: 500)),

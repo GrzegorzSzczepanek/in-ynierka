@@ -1,6 +1,7 @@
 import '../dsp/alpha_pipeline.dart';
 import '../dsp/calibration.dart';
 import '../dsp/processing_config.dart';
+import 'training_protocol.dart';
 
 enum SessionPhase {
   connecting,
@@ -22,7 +23,8 @@ enum SessionStatus { completed, interrupted, connectionLost }
 class SessionConfig {
   const SessionConfig({
     this.processing = const ProcessingConfig(),
-    this.trainingChannels = const ['O1', 'O2'],
+    this.protocol = TrainingProtocol.relaks,
+    List<String>? trainingChannels,
     this.calibrationS = 60,
     this.blocks = 3,
     this.blockS = 180,
@@ -32,10 +34,17 @@ class SessionConfig {
     this.connectAttempts = 3,
     this.reconnectAttempts = 3,
     this.reconnectIntervalS = 15,
-  });
+  }) : _channels = trainingChannels;
 
   final ProcessingConfig processing;
-  final List<String> trainingChannels;
+  final TrainingProtocol protocol;
+  final List<String>? _channels;
+
+  /// Domyslnie kanaly protokolu.
+  List<String> get trainingChannels => _channels ?? protocol.channels;
+
+  /// Jawnie ustawione kanaly (null: kanaly protokolu).
+  List<String>? get channelsOverride => _channels;
   final double calibrationS;
   final int blocks;
   final double blockS;

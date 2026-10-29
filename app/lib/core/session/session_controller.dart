@@ -21,7 +21,7 @@ class SessionController {
     Future<void> Function(Duration)? delay,
   }) : _delay = delay ?? ((d) => Future<void>.delayed(d)) {
     _pipeline = AlphaPipeline(config.processing,
-        trainingChannels: config.trainingChannels);
+        trainingChannels: config.trainingChannels, kind: config.protocol.kind);
   }
 
   final SourceFactory sourceFactory;

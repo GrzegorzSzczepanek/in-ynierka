@@ -19,7 +19,8 @@ import 'ui/neuronek/neuronek.dart';
 const _source = String.fromEnvironment('SOURCE', defaultValue: 'mock');
 const _device = String.fromEnvironment('DEVICE', defaultValue: 'BA MAXI 012');
 const _lib = String.fromEnvironment('BACORE_LIB');
-const _channels = String.fromEnvironment('TRAINING_CHANNELS', defaultValue: 'O1,O2');
+/// Puste: kanaly wg protokolu (Relaks: O1 O2, Skupienie: F3 F4 C3 C4).
+const _channels = String.fromEnvironment('TRAINING_CHANNELS');
 const _bias = String.fromEnvironment('BIAS');
 
 Future<void> main() async {
@@ -30,10 +31,11 @@ Future<void> main() async {
   final raw = '${dir.path}/raw';
   Directory(raw).createSync(recursive: true);
 
-  final training = _channels.split(',');
+  final training = _channels.isEmpty ? null : _channels.split(',');
   final real = _source == 'brainaccess';
   EegSource Function() factory = () => MockSource(
         alphaAmplitudeUv: (t) => 12 + 10 * (t > 90 ? 1 : 0),
+        betaAmplitudeUv: (t) => 4 + 6 * (t > 90 ? 1 : 0),
         realtime: true,
       );
   if (real) {
@@ -52,7 +54,7 @@ Future<void> main() async {
       sourceType: real ? 'device' : 'mock',
       deviceIdentifier: real ? _device : null,
       sourceLabel: real ? 'Czepek' : 'Demo',
-      trainingChannels: training,
+      channelsOverride: training,
     ),
   ));
 }

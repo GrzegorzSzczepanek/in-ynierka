@@ -6,6 +6,7 @@ import '../../core/db/session_persistence.dart';
 import '../../core/db/session_repository.dart';
 import '../../core/session/session_controller.dart';
 import '../../core/session/session_models.dart';
+import '../../core/session/training_protocol.dart';
 import '../app_services.dart';
 import '../format.dart';
 import 'calibration_screen.dart';
@@ -15,7 +16,9 @@ import 'training_screen.dart';
 
 /// Jedna sesja od laczenia do podsumowania. Ekran wynika z fazy sesji.
 class SessionFlowScreen extends StatefulWidget {
-  const SessionFlowScreen({super.key});
+  const SessionFlowScreen({super.key, this.protocol = TrainingProtocol.relaks});
+
+  final TrainingProtocol protocol;
 
   @override
   State<SessionFlowScreen> createState() => _SessionFlowScreenState();
@@ -44,7 +47,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
 
   void _start() {
     final services = ServicesScope.of(context);
-    _config = services.sessionConfig;
+    _config = services.sessionConfigFor(widget.protocol);
     _result = null;
     _log.clear();
     _lastRewards = 0;
@@ -119,7 +122,8 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     final result = _result;
     final s = _snapshot;
     if (result != null && result.status != SessionStatus.connectionLost) {
-      return SummaryScreen(result: result, recent: _recent, onDone: _leave);
+      return SummaryScreen(
+          result: result, recent: _recent, onDone: _leave, protocol: widget.protocol);
     }
     if (s == null) {
       return ConnectionScreen(
@@ -134,7 +138,8 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
         return CalibrationScreen(snapshot: s, onFinish: _finish);
       case SessionPhase.training:
       case SessionPhase.breakBetweenBlocks:
-        return TrainingScreen(snapshot: s, log: _log, onFinish: _finish);
+        return TrainingScreen(
+            snapshot: s, log: _log, onFinish: _finish, protocol: widget.protocol);
       case SessionPhase.connecting:
       case SessionPhase.contactCheck:
       case SessionPhase.reconnecting:

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/db/session_repository.dart';
 import '../../core/dsp/alpha_pipeline.dart';
 import '../../core/session/session_models.dart';
+import '../../core/session/training_protocol.dart';
 import '../format.dart';
 import '../neuronek/neuronek.dart';
 import '../theme/pixel_theme.dart';
@@ -13,8 +14,10 @@ class SummaryScreen extends StatelessWidget {
     required this.result,
     required this.recent,
     required this.onDone,
+    this.protocol = TrainingProtocol.relaks,
   });
 
+  final TrainingProtocol protocol;
   final SessionResult result;
 
   /// Ostatnie sesje (najnowsza pierwsza), bez biezacej.
@@ -38,6 +41,7 @@ class SummaryScreen extends StatelessWidget {
       bottom: PixelButton(label: 'Zapisz i wróć', onPressed: onDone),
       child: ListView(
         children: [
+          Text(protocol.title, style: Px.caption),
           Text(done ? 'Sesja zakończona' : 'Sesja przerwana', style: Px.h1),
           const SizedBox(height: 12),
           PixelCard(

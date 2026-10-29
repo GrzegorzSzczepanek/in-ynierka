@@ -4,6 +4,7 @@ import 'package:neurotchi/core/db/session_repository.dart';
 import 'package:neurotchi/core/dsp/alpha_pipeline.dart';
 import 'package:neurotchi/core/dsp/calibration.dart';
 import 'package:neurotchi/core/session/session_models.dart';
+import 'package:neurotchi/core/session/training_protocol.dart';
 import 'package:neurotchi/ui/screens/calibration_screen.dart';
 import 'package:neurotchi/ui/screens/connection_screen.dart';
 import 'package:neurotchi/ui/screens/home_screen.dart';
@@ -14,6 +15,8 @@ import 'package:neurotchi/ui/screens/training_screen.dart';
 import '../support/golden_support.dart';
 
 void noop() {}
+
+void _ignore(TrainingProtocol _) {}
 
 Future<void> golden(WidgetTester t, String name, Widget screen) async {
   await pumpScreen(t, screen);
@@ -31,6 +34,24 @@ void main() {
           trainingMinutes: 9,
           channelsLabel: '16/32 kanałów',
         ),
+        selected: TrainingProtocol.relaks,
+        onSelect: _ignore,
+        onStart: noop,
+        onProgress: noop,
+      )));
+
+  testWidgets('dom: skupienie', (t) => golden(t, 'dom_skupienie', const HomeScreen(
+        data: HomeData(
+          stageNo: 2,
+          stageName: 'neuron',
+          stageProgress: 0.5,
+          minutesToNext: 10,
+          sourceLabel: 'Czepek',
+          trainingMinutes: 9,
+          channelsLabel: '16/32 kanałów',
+        ),
+        selected: TrainingProtocol.skupienie,
+        onSelect: _ignore,
         onStart: noop,
         onProgress: noop,
       )));
