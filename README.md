@@ -27,6 +27,16 @@ cd app && flutter test
 
 Fixtures DSP odtwarza `app/test/fixtures/generate_fixtures.py` (SciPy).
 
+## Narzędzia czepka (macOS)
+
+Z Terminal.app, w `app/` (nagrania w formacie Replay, odliczanie od pierwszej paczki):
+
+```
+dart run tool/brainaccess_check.dart "BA MAXI 012" 15
+dart run tool/brainaccess_record.dart "BA MAXI 012" 60 nagrania/sesja1
+dart run tool/channel_activity.dart nagrania/sesja1 5
+```
+
 ## Sonda BrainAccess
 
 Uruchamiaj z Terminal.app (potrzebne uprawnienie Bluetooth), po zdjęciu kwarantanny z SDK w `vendor/`:
