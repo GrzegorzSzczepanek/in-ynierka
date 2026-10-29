@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,7 @@ const _lib =
     '../vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib';
 
 void main() {
+  fakeLibTests();
   test('uklad struktury ba_device_info zgodny z naglowkiem C', () {
     expect(sizeOf<BaDeviceInfo>(), 24);
     expect(sizeOf<BaVersion>(), 3);
@@ -43,5 +45,47 @@ void main() {
     final init = core.coreInit();
     expect(init, anyOf(0, 7));
     expect(core.coreClose(), anyOf(0, 9));
+  });
+}
+
+typedef _FireNative = Void Function(Pointer<NativeFunction<BaChunkCallback>>);
+typedef _Fire = void Function(Pointer<NativeFunction<BaChunkCallback>>);
+
+Future<void> _fakeWorker(List<Object> args) async {
+  final out = args[0] as SendPort;
+  final lib = DynamicLibrary.open(args[1] as String);
+  final fire = lib.lookupFunction<_FireNative, _Fire>('fire');
+  final cb = createChunkCallback(out, 0, 1, 1);
+  fire(cb.nativeFunction);
+  await Future<void>.delayed(const Duration(milliseconds: 500));
+  cb.close();
+  out.send(['end']);
+}
+
+void fakeLibTests() {
+  test('callback paczek z natywnego watku kopiuje dane (atrapa w C)', () async {
+    final dir = Directory.systemTemp.createTempSync('fake_bacore');
+    final so = '${dir.path}/libfake.dylib';
+    final cc = Process.runSync(
+        'clang', ['-dynamiclib', '-o', so, 'test/fixtures/fake_bacore.c']);
+    if (cc.exitCode != 0) {
+      markTestSkipped('brak clang');
+      return;
+    }
+    final rp = ReceivePort();
+    await Isolate.spawn(_fakeWorker, [rp.sendPort, so]);
+    final chunks = <List>[];
+    await for (final m in rp) {
+      final l = m as List;
+      if (l[0] == 'end') break;
+      chunks.add(l);
+    }
+    rp.close();
+    expect(chunks.length, 5);
+    expect([for (final c in chunks) c[1]], [0, 25, 50, 75, 100]);
+    final last = chunks.last[4] as Float64List;
+    expect(last.length, 25);
+    expect(last[0], 4.0);
+    expect(last[24], closeTo(4.24, 1e-9));
   });
 }
