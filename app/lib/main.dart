@@ -37,6 +37,9 @@ Future<void> main() async {
         realtime: true,
       );
   if (real) {
+    if (_lib.isEmpty) {
+      throw StateError('SOURCE=brainaccess wymaga --dart-define=BACORE_LIB=/sciezka/do/libbacore.dylib');
+    }
     final bias = _bias.isEmpty ? <int>[] : _bias.split(',').map(int.parse).toList();
     factory = () => BrainAccessMacSource(deviceName: _device, libPath: _lib, biasChannels: bias);
   }

@@ -21,6 +21,34 @@ vendor/                     binaria BrainAccess (poza gitem)
 archive/                    stara analiza EEGMAT, paczki zip
 ```
 
+## Uruchomienie na macOS
+
+Wymaga pełnego Xcode (z App Store), bo `flutter build macos` nie działa na samym Command Line Tools:
+
+```
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+sudo xcodebuild -runFirstLaunch
+flutter doctor
+```
+
+Tryb demo (źródło Mock, bez czepka):
+
+```
+cd app && flutter run -d macos
+```
+
+Z czepkiem BrainAccess (bez piaskownicy tylko w debugu, biblioteka ładowana ze ścieżki; zdejmij kwarantannę z SDK w `vendor/`; kanały treningowe i bias wg ustaleń z czepka):
+
+```
+cd app && flutter run -d macos \
+  --dart-define=SOURCE=brainaccess --dart-define=DEVICE="BA MAXI 012" \
+  --dart-define=BACORE_LIB="$PWD/../vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib" \
+  --dart-define=TRAINING_CHANNELS=ch2,ch10 --dart-define=BIAS=1,9
+```
+
+Okno ma kształt kolumny telefonu (430 x 900), bo ekrany są zaprojektowane pod ok. 390 dp szerokości.
+Wersja release z piaskownicą wymaga dołączenia `libbacore.dylib` do pakietu aplikacji (jeszcze niezrobione).
+
 ## Testy
 
 ```
