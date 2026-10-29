@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:neurotchi/core/dsp/processing_config.dart';
 import 'package:neurotchi/core/eeg/eeg_source.dart';
 import 'package:neurotchi/core/eeg/mock_source.dart';
 import 'package:neurotchi/core/eeg/stream_item.dart';
