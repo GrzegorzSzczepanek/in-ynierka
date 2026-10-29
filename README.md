@@ -44,7 +44,7 @@ Całą konfigurację czepka robi się w aplikacji, na ekranie Ustawienia (ikona 
 - Kanały treningowe: wybór kanałów z kontaktem dla każdego protokołu; BIAS ustawiany jest automatycznie.
 
 Zdejmij kwarantannę z SDK w `vendor/` (Gatekeeper). Okno desktopowe jest responsywne; układ telefonu poniżej ok. 900 dp.
-Wersja release z piaskownicą wymaga dołączenia `libbacore.dylib` do pakietu aplikacji (jeszcze niezrobione).
+`libbacore.dylib` jest dołączana do pakietu aplikacji przy każdym buildzie (faza „Embed libbacore” z `vendor/`), więc gotowy `.app` (`flutter build macos --release`, wynik w `app/build/macos/Build/Products/Release/`) działa samodzielnie, także w piaskownicy. Przy pierwszym połączeniu macOS zapyta o zgodę na Bluetooth.
 
 ## Testy
 
