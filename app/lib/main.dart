@@ -5,24 +5,12 @@ import 'package:path_provider/path_provider.dart';
 
 import 'core/db/app_database.dart';
 import 'core/db/session_repository.dart';
-import 'core/eeg/brainaccess/brainaccess_mac_source.dart';
-import 'core/eeg/eeg_source.dart';
-import 'core/eeg/mock_source.dart';
 import 'ui/app.dart';
 import 'ui/app_services.dart';
 import 'ui/neuronek/neuronek.dart';
 
-/// Zrodlo wybierane przez --dart-define:
-///   SOURCE=mock (domyslnie) | brainaccess
-///   DEVICE="BA MAXI 012", BACORE_LIB=sciezka/do/libbacore.dylib
-///   TRAINING_CHANNELS=O1,O2, BIAS=1,9
-const _source = String.fromEnvironment('SOURCE', defaultValue: 'mock');
-const _device = String.fromEnvironment('DEVICE', defaultValue: 'BA MAXI 012');
-const _lib = String.fromEnvironment('BACORE_LIB');
-/// Puste: kanaly wg protokolu (Relaks: O1 O2, Skupienie: F3 F4 C3 C4).
-const _channels = String.fromEnvironment('TRAINING_CHANNELS');
-const _bias = String.fromEnvironment('BIAS');
-
+/// Zrodlo sygnalu (Demo lub czepek), nazwy kanalow i kanaly treningowe
+/// ustawia sie w aplikacji (ekran Ustawienia), nie w wierszu polecen.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NeuronekSprites.load();
@@ -31,32 +19,11 @@ Future<void> main() async {
   final raw = '${dir.path}/raw';
   Directory(raw).createSync(recursive: true);
 
-  final training = _channels.isEmpty ? null : _channels.split(',');
-  final real = _source == 'brainaccess';
-  EegSource Function() factory = () => MockSource(
-        alphaAmplitudeUv: (t) => 12 + 10 * (t > 90 ? 1 : 0),
-        betaAmplitudeUv: (t) => 4 + 6 * (t > 90 ? 1 : 0),
-        contactAt: (t) => t > 3,
-        realtime: true,
-      );
-  if (real) {
-    if (_lib.isEmpty) {
-      throw StateError('SOURCE=brainaccess wymaga --dart-define=BACORE_LIB=/sciezka/do/libbacore.dylib');
-    }
-    final bias = _bias.isEmpty ? <int>[] : _bias.split(',').map(int.parse).toList();
-    factory = () => BrainAccessMacSource(deviceName: _device, libPath: _lib, biasChannels: bias);
-  }
-
   runApp(NeurotchiApp(
     services: AppServices(
       repository: SessionRepository(database),
-      sourceFactory: factory,
       rawDir: raw,
-      sourceType: real ? 'device' : 'mock',
-      deviceIdentifier: real ? _device : null,
-      sourceLabel: real ? 'Czepek' : 'Demo',
       exportDir: '${(await getApplicationDocumentsDirectory()).path}/NEUROtchi/eksport',
-      channelsOverride: training,
     ),
   ));
 }

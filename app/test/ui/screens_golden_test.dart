@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neurotchi/core/db/session_repository.dart';
@@ -18,7 +20,9 @@ import 'package:neurotchi/core/eeg/mock_source.dart';
 import 'package:neurotchi/core/research/latency.dart';
 import 'package:neurotchi/core/research/research_monitor.dart';
 import 'package:neurotchi/ui/app_services.dart';
+import 'package:neurotchi/core/settings/app_settings.dart';
 import 'package:neurotchi/ui/screens/research_screen.dart';
+import 'package:neurotchi/ui/screens/settings_screen.dart';
 
 import '../support/golden_support.dart';
 
@@ -324,4 +328,87 @@ void main() {
       db.close();
     });
   }
+
+  Future<(AppDatabase, SessionRepository)> settingsDb(AppSettings s) async {
+    final db = AppDatabase.inMemory();
+    final repo = SessionRepository(db);
+    s.save(repo);
+    return (db, repo);
+  }
+
+  testWidgets('ustawienia: demo', (t) async {
+    final (db, repo) = await settingsDb(AppSettings());
+    await pumpScreen(
+      t,
+      ServicesScope(
+        services: AppServices(repository: repo, rawDir: '/tmp'),
+        child: const SettingsScreen(),
+      ),
+      size: const Size(390, 1250),
+    );
+    await expectLater(find.byType(MaterialApp), matchesGoldenFile('../goldens/ustawienia_demo.png'));
+    db.close();
+  });
+
+  testWidgets('ustawienia: czepek', (t) async {
+    final (db, repo) = await settingsDb(AppSettings(
+      source: SourceKind.device,
+      deviceName: 'BA MAXI 012',
+      libPath: '/tmp/libbacore.dylib',
+    )..training['relaks'] = ['O2', 'Pz']);
+    await pumpScreen(
+      t,
+      ServicesScope(
+        services: AppServices(repository: repo, rawDir: '/tmp'),
+        child: SettingsScreen(scan: (_) async => ['BA MAXI 012']),
+      ),
+      size: const Size(390, 1900),
+    );
+    await expectLater(find.byType(MaterialApp), matchesGoldenFile('../goldens/ustawienia_czepek.png'));
+    db.close();
+  });
+
+  testWidgets('ustawienia: wybor zrodla, skan i kanaly zapisuja sie w bazie', (t) async {
+    final (db, repo) = await settingsDb(AppSettings());
+    final lib = File('${Directory.systemTemp.createTempSync('lib').path}/libbacore.dylib')..createSync();
+    await pumpScreen(
+      t,
+      ServicesScope(
+        services: AppServices(repository: repo, rawDir: '/tmp'),
+        child: SettingsScreen(scan: (_) async => ['BA MAXI 012', 'BA MIDI 003']),
+      ),
+      size: const Size(390, 1900),
+    );
+    expect(AppSettings.load(repo).source, SourceKind.demo);
+    await t.tap(find.text('CZEPEK BRAINACCESS'));
+    await t.pump();
+    expect(AppSettings.load(repo).source, SourceKind.device);
+
+    await t.enterText(find.byType(TextField), lib.path);
+    await t.pump();
+    expect(AppSettings.load(repo).libPath, lib.path);
+
+    await t.tap(find.text('SZUKAJ CZEPKA'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 50));
+    await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await t.pump();
+    expect(find.text('BA MIDI 003'), findsOneWidget);
+    await t.tap(find.text('BA MIDI 003'));
+    await t.pump();
+    expect(AppSettings.load(repo).deviceName, 'BA MIDI 003');
+
+    // kanaly treningowe: O1 wylaczony, Pz dolozony
+    await t.tap(find.text('O1').first);
+    await t.pump();
+    await t.tap(find.text('Pz').first);
+    await t.pump();
+    expect(AppSettings.load(repo).trainingChannelsFor(TrainingProtocol.relaks), ['O2', 'Pz']);
+
+    await t.tap(find.text('NUMERY'));
+    await t.pump();
+    expect(AppSettings.load(repo).naming, ChannelNaming.numbered);
+    expect(AppSettings.load(repo).trainingChannelsFor(TrainingProtocol.relaks), ['ch12', 'ch2']);
+    db.close();
+  });
 }

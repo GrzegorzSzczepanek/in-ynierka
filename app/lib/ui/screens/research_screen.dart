@@ -49,7 +49,7 @@ class _ResearchScreenState extends State<ResearchScreen> {
     if (_started) return;
     _started = true;
     final services = ServicesScope.of(context);
-    final m = _monitor = widget.monitor ?? ResearchMonitor(services.sourceFactory, protocol: widget.protocol);
+    final m = _monitor = widget.monitor ?? ResearchMonitor(services.sourceFactoryFor(widget.protocol), protocol: widget.protocol);
     if (widget.monitor == null) unawaited(m.start());
     _tick = Timer.periodic(const Duration(milliseconds: 160), (_) {
       if (!mounted) return;

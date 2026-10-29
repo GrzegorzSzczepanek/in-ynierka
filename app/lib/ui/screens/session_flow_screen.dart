@@ -75,7 +75,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     );
     _sessionId = persistence.sessionId;
     final controller = _controller = SessionController(
-      sourceFactory: services.sourceFactory,
+      sourceFactory: services.sourceFactoryFor(widget.protocol),
       config: _config,
       onItem: persistence.onItem,
       stored: services.repository.lastCalibration(widget.protocol),

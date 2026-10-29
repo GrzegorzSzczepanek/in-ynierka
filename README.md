@@ -31,22 +31,19 @@ sudo xcodebuild -runFirstLaunch
 flutter doctor
 ```
 
-Tryb demo (źródło Mock, bez czepka):
-
 ```
 cd app && flutter run -d macos
 ```
 
-Z czepkiem BrainAccess (bez piaskownicy tylko w debugu, biblioteka ładowana ze ścieżki; zdejmij kwarantannę z SDK w `vendor/`; kanały treningowe i bias wg ustaleń z czepka):
+Całą konfigurację czepka robi się w aplikacji, na ekranie Ustawienia (ikona koła zębatego na ekranie głównym):
 
-```
-cd app && flutter run -d macos \
-  --dart-define=SOURCE=brainaccess --dart-define=DEVICE="BA MAXI 012" \
-  --dart-define=BACORE_LIB="$PWD/../vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib" \
-  --dart-define=TRAINING_CHANNELS=ch2,ch10 --dart-define=BIAS=1,9
-```
+- Źródło: Demo (sygnał symulowany) albo Czepek BrainAccess.
+- Szukaj czepka: skanuje Bluetooth i zapamiętuje wybrane urządzenie (jedno znalezione wybiera się samo).
+- Biblioteka `libbacore`: szukana automatycznie (`vendor/mac_os_testing/...`, pakiet aplikacji), ścieżkę można też wpisać ręcznie.
+- Nazwy kanałów: wg tabeli producenta albo numery ch1..ch32.
+- Kanały treningowe: wybór kanałów z kontaktem dla każdego protokołu; BIAS ustawiany jest automatycznie.
 
-Okno ma kształt kolumny telefonu (430 x 900), bo ekrany są zaprojektowane pod ok. 390 dp szerokości.
+Zdejmij kwarantannę z SDK w `vendor/` (Gatekeeper). Okno desktopowe jest responsywne; układ telefonu poniżej ok. 900 dp.
 Wersja release z piaskownicą wymaga dołączenia `libbacore.dylib` do pakietu aplikacji (jeszcze niezrobione).
 
 ## Testy

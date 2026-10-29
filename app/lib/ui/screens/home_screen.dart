@@ -16,6 +16,7 @@ class HomeData {
     this.mood,
     this.focus,
     this.streakDays = 0,
+    this.sourceLabel = '',
   });
 
   final int stageNo;
@@ -31,6 +32,9 @@ class HomeData {
   /// Udzial czasu w celu w ostatniej sesji (0..1) lub null.
   final double? focus;
   final int streakDays;
+
+  /// Aktywne zrodlo sygnalu (DEMO lub CZEPEK).
+  final String sourceLabel;
 }
 
 /// Ekran główny. Na szerokim oknie (od 900 dp) neuronek ma wybieg,
@@ -46,6 +50,7 @@ class HomeScreen extends StatelessWidget {
     this.onConnection,
     this.onCalibration,
     this.onResearch,
+    this.onSettings,
     this.animated = true,
   });
 
@@ -57,6 +62,7 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback? onConnection;
   final VoidCallback? onCalibration;
   final VoidCallback? onResearch;
+  final VoidCallback? onSettings;
   final bool animated;
 
   static const desktopWidth = 900.0;
@@ -75,7 +81,7 @@ class HomeScreen extends StatelessWidget {
             Text(':L${data.stageNo}', style: Px.t(12, height: 1.5)),
           ]),
           const SizedBox(height: 2),
-          Text('etap: ${data.stageName}', style: Px.tiny),
+          Text('etap: ${data.stageName}${data.sourceLabel.isEmpty ? '' : ' · ${data.sourceLabel}'}', style: Px.tiny),
           const SizedBox(height: 6),
           _stat('ENERG', data.energy),
           const SizedBox(height: 6),
@@ -126,6 +132,8 @@ class HomeScreen extends StatelessWidget {
         PkTile(label: 'POSTĘP', icon: barsIcon, onTap: onProgress, big: big),
         if (onResearch != null)
           PkTile(label: 'BADACZ', icon: monitorIcon, onTap: onResearch!, big: big),
+        if (onSettings != null)
+          PkTile(label: 'USTAWIENIA', icon: gearIcon, onTap: onSettings!, big: big),
       ];
 
   Widget _mobile(BuildContext context) {

@@ -8,6 +8,7 @@ import 'screens/home_screen.dart';
 import 'screens/progress_screen.dart';
 import 'screens/research_screen.dart';
 import 'screens/session_flow_screen.dart';
+import 'screens/settings_screen.dart';
 import 'theme/pixel_theme.dart';
 import 'view_data.dart';
 
@@ -51,6 +52,7 @@ class _HomeRouteState extends State<_HomeRoute> {
       data: homeData(
         services.repository,
         trainingMinutes: (config.blocks * config.blockS / 60).round(),
+        sourceLabel: services.sourceLabel,
       ),
       selected: _selected,
       onSelect: (p) => setState(() => _selected = p),
@@ -58,6 +60,7 @@ class _HomeRouteState extends State<_HomeRoute> {
       onConnection: () => _open(ConnectionCheckScreen(protocol: _selected)),
       onCalibration: () => _open(_CalibrationRoute(protocol: _selected)),
       onResearch: () => _open(ResearchScreen(protocol: _selected)),
+      onSettings: () => _open(const SettingsScreen()),
       onProgress: () => _open(Builder(
         builder: (ctx) => ProgressScreen(
           data: progressData(services.repository, DateTime.now()),

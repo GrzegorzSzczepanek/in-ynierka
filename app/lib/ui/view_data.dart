@@ -2,7 +2,8 @@ import '../core/db/session_repository.dart';
 import 'screens/home_screen.dart';
 import 'screens/progress_screen.dart';
 
-HomeData homeData(SessionRepository repo, {required int trainingMinutes, DateTime? now}) {
+HomeData homeData(SessionRepository repo,
+    {required int trainingMinutes, String sourceLabel = '', DateTime? now}) {
   final t = now ?? DateTime.now();
   final current = repo.unlockedStages().last;
   final mood = repo.recentMoodAverage();
@@ -15,6 +16,7 @@ HomeData homeData(SessionRepository repo, {required int trainingMinutes, DateTim
     mood: mood == null ? null : ((mood - 1) / 4).clamp(0.0, 1.0),
     focus: repo.lastSessionTargetShare(),
     streakDays: repo.streakDays(t),
+    sourceLabel: sourceLabel,
   );
 }
 

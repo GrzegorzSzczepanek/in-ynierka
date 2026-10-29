@@ -35,7 +35,7 @@ class _ConnectionCheckScreenState extends State<ConnectionCheckScreen> {
 
   void _start() {
     final services = ServicesScope.of(context);
-    final monitor = _monitor = ConnectionMonitor(services.sourceFactory);
+    final monitor = _monitor = ConnectionMonitor(services.sourceFactoryFor(widget.protocol));
     _sub = monitor.states.listen((s) {
       if (mounted) setState(() => _state = s);
     });

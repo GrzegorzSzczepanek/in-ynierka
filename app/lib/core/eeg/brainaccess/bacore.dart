@@ -30,6 +30,20 @@ final class BaDeviceInfo extends Struct {
   external int samplePerPacket;
 }
 
+final class BaBleDevice extends Struct {
+  external Pointer<Uint8> name;
+  external Pointer<Uint8> macAddress;
+}
+
+String _cString(Pointer<Uint8> p) {
+  if (p == nullptr) return '';
+  final bytes = <int>[];
+  for (var i = 0; p[i] != 0 && i < 256; i++) {
+    bytes.add(p[i]);
+  }
+  return utf8.decode(bytes, allowMalformed: true);
+}
+
 typedef BaChunkCallback = Void Function(
     Pointer<Pointer<Void>>, Size, Pointer<Void>);
 typedef BaVoidCallback = Void Function(Pointer<Void>);
@@ -129,6 +143,27 @@ class BaCore {
   static final _libc = DynamicLibrary.process();
   static final _malloc = _libc.lookupFunction<_MallocN, _Malloc>('malloc');
   static final _free = _libc.lookupFunction<_FreeN, _Free>('free');
+
+  late final int Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>) _scan =
+      _lib.lookupFunction<Uint8 Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>),
+          int Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>)>('ba_core_scan');
+
+  /// Skanuje BLE (ok. 5 s, wymaga uprawnienia Bluetooth) i zwraca nazwy czepkow BrainAccess.
+  List<String> scanNames() {
+    final devs = _malloc(8).cast<Pointer<BaBleDevice>>();
+    final count = _malloc(8).cast<Size>();
+    try {
+      count.value = 0;
+      final err = _scan(devs, count);
+      if (err != 0) throw StateError('Skan BLE nie powiodl sie (kod $err)');
+      return [
+        for (var i = 0; i < count.value; i++) _cString((devs.value + i).ref.name),
+      ];
+    } finally {
+      _free(devs.cast());
+      _free(count.cast());
+    }
+  }
 
   bool isConnected(Pointer<Void> mgr) => _isConnected(mgr) != 0;
 

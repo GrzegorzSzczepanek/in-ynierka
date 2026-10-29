@@ -1,0 +1,117 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:neurotchi/core/db/app_database.dart';
+import 'package:neurotchi/core/db/session_repository.dart';
+import 'package:neurotchi/core/eeg/brainaccess/channel_map.dart';
+import 'package:neurotchi/core/eeg/brainaccess/lib_locator.dart';
+import 'package:neurotchi/core/eeg/mock_source.dart';
+import 'package:neurotchi/core/eeg/stream_item.dart';
+import 'package:neurotchi/core/eeg/unavailable_source.dart';
+import 'package:neurotchi/core/session/session_controller.dart';
+import 'package:neurotchi/core/session/session_models.dart';
+import 'package:neurotchi/core/session/training_protocol.dart';
+import 'package:neurotchi/core/settings/app_settings.dart';
+import 'package:neurotchi/ui/app_services.dart';
+
+void main() {
+  late AppDatabase db;
+  late SessionRepository repo;
+  setUp(() {
+    db = AppDatabase.inMemory();
+    repo = SessionRepository(db);
+  });
+  tearDown(() => db.close());
+
+  test('ustawienia: wartosci domyslne i zapis w bazie', () {
+    final d = AppSettings.load(repo);
+    expect(d.source, SourceKind.demo);
+    expect(d.deviceName, '');
+    expect(d.trainingChannelsFor(TrainingProtocol.relaks), ['O1', 'O2']);
+
+    final s = AppSettings(source: SourceKind.device, deviceName: 'BA MAXI 012', naming: ChannelNaming.numbered)
+      ..training['relaks'] = ['ch2', 'ch10'];
+    s.save(repo);
+    final back = AppSettings.load(repo);
+    expect(back.source, SourceKind.device);
+    expect(back.deviceName, 'BA MAXI 012');
+    expect(back.naming, ChannelNaming.numbered);
+    expect(back.trainingChannelsFor(TrainingProtocol.relaks), ['ch2', 'ch10']);
+    expect(back.trainingChannelsFor(TrainingProtocol.skupienie),
+        ['ch11', 'ch6', 'ch14', 'ch4']); // F3 F4 C3 C4: zlacza 10, 5, 13, 3 plus 1
+  });
+
+  test('nazwy kanalow z tabeli producenta i indeksy BIAS', () {
+    expect(maxiManufacturerNames.length, 32);
+    expect(maxiManufacturerNames[11], 'O1');
+    expect(maxiManufacturerNames[1], 'O2');
+    final s = AppSettings(source: SourceKind.device, deviceName: 'x')..training['relaks'] = ['O2', 'Pz', 'O1'];
+    expect(s.biasIndicesFor(TrainingProtocol.relaks), [1, 9]);
+    expect(AppSettings(source: SourceKind.device, naming: ChannelNaming.numbered).channelNames.first, 'ch1');
+  });
+
+  test('zrodlo Demo zawsze uzywa nazw 10-20, nawet gdy wybrano numery', () {
+    final s = AppSettings(naming: ChannelNaming.numbered);
+    expect(s.effectiveNaming, ChannelNaming.manufacturer);
+    expect(s.trainingChannelsFor(TrainingProtocol.relaks), ['O1', 'O2']);
+  });
+
+  test('lokalizator libbacore: sciezka reczna, bundle i vendor w drzewie', () {
+    final tmp = Directory.systemTemp.createTempSync('lib');
+    final manual = File('${tmp.path}/moja.dylib')..createSync();
+    expect(findBacoreLib(override: manual.path, environment: {}, executable: '/x/y', cwd: '/nie/ma'), manual.path);
+    expect(findBacoreLib(override: '/nie/ma.dylib', environment: {}, executable: '/x/y', cwd: '/nie/ma'), isNull);
+
+    final app = Directory('${tmp.path}/App.app/Contents/MacOS')..createSync(recursive: true);
+    Directory('${tmp.path}/App.app/Contents/Frameworks').createSync();
+    final bundled = File('${tmp.path}/App.app/Contents/Frameworks/libbacore.dylib')..createSync();
+    expect(findBacoreLib(environment: {}, executable: '${app.path}/neurotchi', cwd: '/nie/ma'), bundled.path);
+
+    final repoRoot = Directory('${tmp.path}/repo')..createSync();
+    final vendor = File('${repoRoot.path}/vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib')
+      ..createSync(recursive: true);
+    final deep = Directory('${repoRoot.path}/app/build/x')..createSync(recursive: true);
+    expect(findBacoreLib(environment: {}, executable: '/x/y', cwd: deep.path), vendor.path);
+  });
+
+  test('AppServices wybiera zrodlo wg ustawien', () async {
+    final services = AppServices(repository: repo, rawDir: '/tmp');
+    final p = TrainingProtocol.relaks;
+    expect(services.sourceFactoryFor(p)(), isA<MockSource>());
+    expect(services.sourceLabel, 'DEMO');
+    expect(services.sourceType, 'mock');
+
+    AppSettings(source: SourceKind.device).save(repo);
+    expect(services.sourceLabel, 'CZEPEK');
+    expect(services.sourceType, 'device');
+    expect(services.sourceFactoryFor(p)(), isA<UnavailableSource>()); // brak nazwy czepka
+
+    AppSettings(source: SourceKind.device, deviceName: 'BA MAXI 012', libPath: '/nie/ma.dylib').save(repo);
+    final src = services.sourceFactoryFor(p)();
+    // Biblioteka moze byc w drzewie projektu; wazne, ze nie rzuca i jest zrodlem.
+    expect(src, isNotNull);
+    expect(services.sessionConfigFor(p).trainingChannels, ['O1', 'O2']);
+  });
+
+  test('niedostepne zrodlo konczy laczenie wyborem urzadzenia', () async {
+    final c = SessionController(
+      sourceFactory: () => UnavailableSource('brak'),
+      config: const SessionConfig(),
+      delay: (_) async {},
+    );
+    final phases = <SessionPhase>[];
+    c.snapshots.listen((s) => phases.add(s.phase));
+    final r = await c.run();
+    expect(phases.last, SessionPhase.deviceSelection);
+    expect(r.status, SessionStatus.connectionLost);
+    final first = await UnavailableSource('x').let((s) async {
+      await s.start();
+      return s.items.first;
+    });
+    expect(first, isA<DisconnectedEvent>());
+  });
+}
+
+extension<T> on T {
+  R let<R>(R Function(T) f) => f(this);
+}
