@@ -99,7 +99,7 @@ class ResearchMonitor {
       }
     }
     _clock.stop();
-    _updates.add(null);
+    _notify();
   }
 
   void _begin(SegmentStart s) {
@@ -164,8 +164,12 @@ class ResearchMonitor {
       _secOk = true;
     }
     _trim();
-    _updates.add(null);
+    _notify();
     t0.stop();
+  }
+
+  void _notify() {
+    if (!_updates.isClosed) _updates.add(null);
   }
 
   void _trim() {

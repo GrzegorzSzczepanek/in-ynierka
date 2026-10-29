@@ -119,4 +119,13 @@ void main() {
     expect(repo.exportableSessions().single.id, p.sessionId);
     db.close();
   });
+
+  test('zatrzymanie monitora w trakcie strumienia nie rzuca wyjatku', () async {
+    final m = ResearchMonitor(() => MockSource(duration: const Duration(seconds: 200)));
+    final running = m.start();
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    await m.stop();
+    await running;
+    expect(m.elapsed, isNotNull);
+  });
 }
