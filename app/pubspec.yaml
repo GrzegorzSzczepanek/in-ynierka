@@ -63,9 +63,9 @@ flutter:
     - assets/neuronek/mimiki.json
 
   fonts:
-    - family: IBMPlexSans
+    - family: PressStart2P
       fonts:
-        - asset: assets/fonts/IBMPlexSans-Variable.ttf
+        - asset: assets/fonts/PressStart2P-Regular.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

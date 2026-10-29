@@ -44,101 +44,92 @@ class ProgressScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final next = data.next;
     final visible = data.stages.skip(data.currentIndex).take(3).toList();
-    const days = ['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'];
+    const days = ['PN', 'WT', 'ŚR', 'CZ', 'PT', 'SB', 'ND'];
     return ScreenFrame(
       child: ListView(
         children: [
           Row(children: [
-            PixelBack(onPressed: onBack),
+            PkBack(onPressed: onBack),
             const SizedBox(width: 12),
-            Text('Postęp', style: Px.h1),
+            Text('POSTĘP', style: Px.t(20, height: 1.3, shadow: true)),
           ]),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
             Text(decimal(data.totalMinutes, 0), style: Px.hero),
             const SizedBox(width: 8),
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(next == null ? 'min' : '/${next.requiredValidMinutes} min',
-                  style: Px.text(28, color: Px.ink2)),
+              child: Text(next == null ? 'min' : '/${next.requiredValidMinutes}', style: Px.t(18, color: Px.ink2)),
             ),
           ]),
           Text(
             next == null
-                ? 'poprawnego treningu, ostatni etap osiągnięty'
-                : 'poprawnego treningu do etapu: ${next.name}',
-            style: Px.secondary,
+                ? 'minut poprawnego treningu, ostatni etap'
+                : 'minut do etapu: ${next.name}',
+            style: Px.small,
           ),
           const SizedBox(height: 10),
-          PixelBar(value: data.stageProgress),
-          const SizedBox(height: 16),
-          Row(children: [
-            for (var i = 0; i < visible.length; i++)
-              Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(right: i < 2 ? 8 : 0),
-                  child: PixelCard(
-                    selected: i == 0,
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                    child: Column(children: [
-                      Opacity(
-                        opacity: i == 0 ? 1 : 0.3,
-                        child: Neuronek(
-                            mood: i == 0 ? Mood.happy : Mood.sleepy, height: 64, shadow: false),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(visible[i].name,
-                          textAlign: TextAlign.center, style: Px.text(13, weight: 500)),
-                      Text(i == 0 ? 'obecny' : 'od ${visible[i].requiredValidMinutes} min',
-                          style: Px.caption),
-                    ]),
-                  ),
+          PkSegBar(value: data.stageProgress, segments: 12, height: 22),
+          const SizedBox(height: 14),
+          PkWindow(
+            padding: const EdgeInsets.all(6),
+            child: Column(children: [
+              for (var i = 0; i < visible.length; i++)
+                Container(
+                  color: i == 0 ? Px.accentLight : null,
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  child: Row(children: [
+                    SizedBox(width: 18, child: i == 0 ? const PkCursor() : null),
+                    Opacity(
+                      opacity: i == 0 ? 1 : 0.35,
+                      child: Neuronek(mood: i == 0 ? Mood.happy : Mood.sleepy, height: 52, shadow: false),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('NO.${visible[i].sortOrder.toString().padLeft(3, '0')}', style: Px.tiny),
+                        Text(visible[i].name.toUpperCase(), style: Px.t(11, height: 1.5)),
+                        Text(i == 0 ? 'obecny etap' : 'od ${visible[i].requiredValidMinutes} min',
+                            style: Px.tiny),
+                      ]),
+                    ),
+                  ]),
                 ),
-              ),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: Text('TYDZIEŃ', style: Px.t(11))),
+            Text('${data.week.where((d) => d).length} z 7', style: Px.tiny),
           ]),
-          const SizedBox(height: 20),
-          Text('Ten tydzień', style: Px.h2),
           const SizedBox(height: 8),
           Row(children: [
             for (var i = 0; i < 7; i++)
               Expanded(
                 child: Column(children: [
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    height: 28,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    height: 24,
                     decoration: BoxDecoration(
                       color: data.week[i] ? Px.accent : Px.panel,
-                      border: Border.all(color: i == todayIndex ? Px.accent : Px.ink, width: 2),
+                      border: Border.all(color: i == todayIndex ? Px.accent : Px.ink, width: 3),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(days[i], style: Px.caption),
+                  Text(days[i], style: Px.t(7, color: Px.ink2, height: 1)),
                 ]),
               ),
           ]),
-          const SizedBox(height: 4),
-          Text('Pominięty dzień niczego nie zeruje. Postęp rośnie z poprawnego czasu treningu.',
-              style: Px.caption),
-          const SizedBox(height: 20),
-          Text('Ostatnie sesje', style: Px.h2),
-          const SizedBox(height: 4),
-          if (data.recent.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text('Jeszcze nie ma sesji. Zacznij pierwszy trening.', style: Px.secondary),
-            ),
+          const SizedBox(height: 14),
+          Text('OSTATNIE SESJE', style: Px.t(11)),
+          const SizedBox(height: 6),
+          if (data.recent.isEmpty) Text('Jeszcze nie ma sesji. Zacznij pierwszy trening.', style: Px.small),
           for (final s in data.recent.take(8))
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Px.soft))),
-              child: Row(children: [
-                Expanded(
-                  child: Text('${s.protocol.title}, ${s.createdAt.toLocal().day}.${s.createdAt.toLocal().month.toString().padLeft(2, '0')}',
-                      style: Px.body),
-                ),
-                Text(mSs(s.validMinutes * 60), style: Px.text(16, weight: 500)),
-              ]),
+            PkLeader(
+              '${s.protocol.title} ${s.createdAt.toLocal().day}.${s.createdAt.toLocal().month.toString().padLeft(2, '0')}',
+              mSs(s.validMinutes * 60),
             ),
+          const SizedBox(height: 8),
         ],
       ),
     );

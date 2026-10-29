@@ -32,6 +32,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
   SessionResult? _result;
   List<SessionRow> _recent = const [];
   final _log = <TrainingLogEntry>[];
+  final _history = <double>[];
   int _lastRewards = 0;
   bool _lastValid = true;
   bool _started = false;
@@ -50,6 +51,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     _config = services.sessionConfigFor(widget.protocol);
     _result = null;
     _log.clear();
+    _history.clear();
     _lastRewards = 0;
     _lastValid = true;
     final persistence = SessionPersistence.begin(
@@ -93,6 +95,10 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
         _log.add(TrainingLogEntry(t, 'Sygnał wrócił'));
       }
       _lastValid = fb.valid;
+      if (fb.valid) {
+        _history.add(fb.y);
+        if (_history.length > 120) _history.removeAt(0);
+      }
     }
     _lastRewards = s.phase == SessionPhase.training ? s.rewardCount : 0;
     setState(() => _snapshot = s);
@@ -139,7 +145,11 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       case SessionPhase.training:
       case SessionPhase.breakBetweenBlocks:
         return TrainingScreen(
-            snapshot: s, log: _log, onFinish: _finish, protocol: widget.protocol);
+            snapshot: s,
+            log: _log,
+            history: List.of(_history),
+            onFinish: _finish,
+            protocol: widget.protocol);
       case SessionPhase.connecting:
       case SessionPhase.contactCheck:
       case SessionPhase.reconnecting:

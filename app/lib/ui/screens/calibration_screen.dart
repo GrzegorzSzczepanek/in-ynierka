@@ -17,67 +17,49 @@ class CalibrationScreen extends StatelessWidget {
     final left = (total - snapshot.phaseElapsedS).clamp(0, total).toDouble();
     final retry = snapshot.attempt > 1;
     return ScreenFrame(
-      bottom: PixelButton(label: 'Zakończ', primary: false, onPressed: onFinish),
+      footer: true,
+      bottom: PkAction(label: 'ZAKOŃCZ', onTap: onFinish, primary: false),
       child: ListView(
         children: [
-          Text('Kalibracja', style: Px.h1),
-          const SizedBox(height: 4),
-          Text('pomiar punktu odniesienia, oczy otwarte', style: Px.secondary),
-          const SizedBox(height: 16),
-          PixelCard(
-            padding: const EdgeInsets.all(20),
+          Row(children: [
+            PkBack(onPressed: onFinish),
+            const SizedBox(width: 12),
+            Text('KALIBRACJA', style: Px.t(20, height: 1.3, shadow: true)),
+          ]),
+          const SizedBox(height: 12),
+          PkWindow(
+            padding: const EdgeInsets.all(6),
             child: Column(children: [
-              const Neuronek(mood: Mood.focused, height: 110),
-              const SizedBox(height: 12),
-              Text(mSs(left), style: Px.hero),
-              const SizedBox(height: 12),
-              PixelBar(
-                value: snapshot.phaseElapsedS / total,
-                segments: 20,
-                height: 20,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Usiądź spokojnie, patrz przed siebie. Nie zaciskaj szczęki ani powiek.',
-                textAlign: TextAlign.center,
-                style: Px.secondary.copyWith(color: Px.ink),
-              ),
+              PkMenuRow(label: '1 OCZY OTWARTE', trailing: 'trwa', selected: true),
+              const PkMenuRow(label: '2 WYNIK', trailing: 'czeka'),
             ]),
           ),
-          const SizedBox(height: 16),
-          Text('Przebieg', style: Px.h2),
-          const SizedBox(height: 8),
-          _Row('Próba', '${snapshot.attempt}'),
-          _Row('Jakość sygnału', qualityLabel(snapshot.signalQuality)),
+          const SizedBox(height: 12),
+          PkWindow(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: Column(children: [
+              const Neuronek(mood: Mood.focused, height: 100),
+              const SizedBox(height: 8),
+              Text(mSs(left), style: Px.display),
+              const SizedBox(height: 10),
+              PkSegBar(value: snapshot.phaseElapsedS / total),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          const PkDialog(text: 'Usiądź spokojnie, patrz przed siebie. Nie zaciskaj szczęki ani powiek.'),
+          const SizedBox(height: 14),
+          Text('WYNIK', style: Px.t(10)),
+          const SizedBox(height: 6),
+          PkLeader('Próba', '${snapshot.attempt}'),
+          PkLeader('Jakość sygnału', qualityLabel(snapshot.signalQuality)),
           if (retry)
             Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Poprzednia próba odrzucona: zbyt wiele nieważnych fragmentów. Powtarzamy pomiar.',
-                style: Px.caption,
-              ),
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Poprzednia próba odrzucona: za dużo nieważnych fragmentów. Powtarzamy.',
+                  style: Px.tiny),
             ),
         ],
       ),
     );
   }
-}
-
-class _Row extends StatelessWidget {
-  const _Row(this.label, this.value);
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Px.soft)),
-        ),
-        child: Row(children: [
-          Expanded(child: Text(label, style: Px.body)),
-          Text(value, style: Px.text(16, weight: 500)),
-        ]),
-      );
 }

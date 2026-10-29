@@ -100,6 +100,7 @@ void main() {
           feedback: FeedbackSample(valid: true, y: 0.72),
           signalQuality: 0.95,
         ),
+        history: [0.4, 0.45, 0.5, 0.48, 0.55, 0.6, 0.58, 0.66, 0.7, 0.72],
         log: [
           TrainingLogEntry('01:17', 'Nagroda'),
           TrainingLogEntry('02:41', 'Próg 0,60, sygnał: dobry'),

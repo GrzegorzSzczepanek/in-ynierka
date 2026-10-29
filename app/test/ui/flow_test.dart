@@ -27,31 +27,31 @@ void main() {
     addTearDown(t.view.reset);
 
     await t.pumpWidget(NeurotchiApp(services: services));
-    expect(find.text('Rozpocznij trening'), findsOneWidget);
-    expect(find.text('Etap 1: soma'), findsOneWidget);
-    expect(find.textContaining('relaks, około 9 minut'), findsOneWidget);
-    expect(find.text('Relaks'), findsOneWidget);
-    expect(find.text('Skupienie'), findsOneWidget);
-    await t.tap(find.text('Skupienie'));
+    expect(find.text('TRENING'), findsOneWidget);
+    expect(find.text('NEURONEK'), findsOneWidget);
+    expect(find.textContaining('relaks, 9 min'), findsOneWidget);
+    expect(find.text('RELAKS'), findsOneWidget);
+    expect(find.text('SKUPIENIE'), findsOneWidget);
+    await t.tap(find.text('SKUPIENIE'));
     await t.pump();
-    expect(find.textContaining('skupienie, około 9 minut'), findsOneWidget);
-    await t.tap(find.text('Relaks'));
+    expect(find.textContaining('skupienie, 9 min'), findsOneWidget);
+    await t.tap(find.text('RELAKS'));
     await t.pump();
 
-    await t.tap(find.text('Postęp i historia'));
+    await t.tap(find.text('POSTĘP'));
     await t.pumpAndSettle();
     expect(find.text('Jeszcze nie ma sesji. Zacznij pierwszy trening.'), findsOneWidget);
     await t.tap(find.text('←'));
     await t.pumpAndSettle();
-    expect(find.text('Rozpocznij trening'), findsOneWidget);
+    expect(find.text('NEURONEK'), findsOneWidget);
 
-    await t.tap(find.text('Rozpocznij trening'));
+    await t.tap(find.text('TRENING'));
     await t.pump();
     await t.pump(const Duration(milliseconds: 500));
-    expect(find.text('Połączenie'), findsOneWidget);
+    expect(find.text('POŁĄCZENIE'), findsOneWidget);
     expect(db.db.select('SELECT status FROM sessions').single['status'], 'in_progress');
 
-    await t.tap(find.text('Zakończ'));
+    await t.tap(find.text('ZAKOŃCZ'));
     await t.pump(const Duration(milliseconds: 100));
     await t.pumpWidget(const SizedBox());
     await t.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));

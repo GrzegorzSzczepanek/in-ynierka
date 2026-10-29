@@ -7,6 +7,7 @@ import '../../core/session/training_protocol.dart';
 import '../format.dart';
 import '../neuronek/neuronek.dart';
 import '../theme/pixel_theme.dart';
+import '../widgets/pk_widgets.dart';
 
 class SummaryScreen extends StatelessWidget {
   const SummaryScreen({
@@ -38,110 +39,83 @@ class SummaryScreen extends StatelessWidget {
     }
     final done = result.status == SessionStatus.completed;
     return ScreenFrame(
-      bottom: PixelButton(label: 'Zapisz i wróć', onPressed: onDone),
+      footer: true,
+      bottom: PkAction(label: 'ZAPISZ I WRÓĆ', onTap: onDone),
       child: ListView(
         children: [
-          Text(protocol.title, style: Px.caption),
-          Text(done ? 'Sesja zakończona' : 'Sesja przerwana', style: Px.h1),
-          const SizedBox(height: 12),
-          PixelCard(
-            padding: const EdgeInsets.all(16),
+          Row(children: [
+            Expanded(child: Text(protocol.title.toUpperCase(), style: Px.small)),
+            Text('${result.calibrations.length} kal.', style: Px.tiny),
+          ]),
+          Text(done ? 'SESJA ZAKOŃCZONA!' : 'SESJA PRZERWANA', style: Px.t(17, height: 1.4, shadow: true)),
+          const SizedBox(height: 10),
+          PkWindow(
+            padding: const EdgeInsets.all(12),
             child: Row(children: [
               Neuronek(mood: blocks.isEmpty ? Mood.sleepy : Mood.happy, height: 80, shadow: false),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(mSs(valid), style: Px.display),
                   Text(
-                    blocks.isEmpty
-                        ? 'brak ukończonego bloku'
-                        : 'poprawnego sygnału, ${(share * 100).round()}% w celu',
-                    style: Px.caption,
+                    blocks.isEmpty ? 'brak ukończonego bloku' : 'w celu, ${(share * 100).round()}% sesji',
+                    style: Px.tiny,
                   ),
                 ]),
               ),
             ]),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (blocks.isEmpty)
-            Text(
-              'Sesja nie liczy się do postępu, bo nie ukończono żadnego bloku.',
-              style: Px.secondary,
-            )
+            Text('Sesja nie liczy się do postępu: nie ukończono żadnego bloku.', style: Px.small)
           else ...[
-            Text('Bloki', style: Px.h2),
-            const SizedBox(height: 8),
-            for (final b in blocks)
-              _Line(
-                'Blok ${b.blockNo}',
-                '${mSs(b.validSignalS)} poprawnego, '
-                    '${b.validSignalS > 0 ? (b.timeAboveThresholdS / b.validSignalS * 100).round() : 0}% w celu, '
-                    '${b.rewardCount} ${_nagrody(b.rewardCount)}',
-              ),
-            const SizedBox(height: 16),
-            Text('Jakość pomiaru', style: Px.h2),
-            const SizedBox(height: 8),
-            _Line('Odrzucone fragmenty', '${intervals.length} (${mSs(invalidMs / 1000)})'),
-            for (final e in (reasons.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).take(3))
-              _Line(reasonTitle(e.key), '${e.value}'),
-            _Line('Próby kalibracji', '${result.calibrations.length}'),
-            const SizedBox(height: 16),
-            _Line('Naliczony postęp', '+${decimal(valid / 60, 1)} min'),
-          ],
-          if (recent.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text('Ostatnie sesje', style: Px.h2),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 64,
-              child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                for (final s in recent.take(6).toList().reversed)
-                  Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      height: 8 + (s.validMinutes / 12).clamp(0, 1) * 56,
-                      color: Px.accentLight,
-                    ),
+            PkWindow(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(children: [
+                for (final b in blocks)
+                  PkLeader(
+                    'Blok ${b.blockNo}',
+                    '${mSs(b.validSignalS)} ${b.validSignalS > 0 ? (b.timeAboveThresholdS / b.validSignalS * 100).round() : 0}% '
+                        '${b.rewardCount}x',
                   ),
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    height: 8 + (valid / 60 / 12).clamp(0, 1) * 56,
-                    color: Px.accent,
-                  ),
-                ),
               ]),
             ),
-            const SizedBox(height: 4),
-            Text('poprawne minuty w kolejnych sesjach', style: Px.caption),
+            const SizedBox(height: 12),
+            PkWindow(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(children: [
+                PkLeader('Odrzucone fragmenty', '${intervals.length} (${mSs(invalidMs / 1000)})'),
+                for (final e in (reasons.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).take(3))
+                  PkLeader(reasonTitle(e.key), '${e.value}'),
+                PkLeader('Próby kalibracji', '${result.calibrations.length}'),
+                PkLeader('Naliczony postęp', '+${decimal(valid / 60, 1)} min', bold: true),
+              ]),
+            ),
+          ],
+          if (recent.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            PkWindow(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('OSTATNIE SESJE', style: Px.t(9, color: Px.ink2)),
+                const SizedBox(height: 8),
+                PkChart(
+                  bars: true,
+                  height: 60,
+                  values: [
+                    for (final s in recent.take(5).toList().reversed) (s.validMinutes / 12).clamp(0.05, 1.0),
+                    (valid / 60 / 12).clamp(0.05, 1.0),
+                  ],
+                  threshold: null,
+                ),
+                const SizedBox(height: 4),
+                Text('poprawne minuty w kolejnych sesjach', style: Px.tiny),
+              ]),
+            ),
           ],
           const SizedBox(height: 8),
         ],
       ),
     );
   }
-
-  static String _nagrody(int n) => n == 1
-      ? 'nagroda'
-      : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14))
-          ? 'nagrody'
-          : 'nagród';
-}
-
-class _Line extends StatelessWidget {
-  const _Line(this.label, this.value);
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Px.soft))),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: Px.body),
-          const SizedBox(width: 12),
-          Expanded(child: Text(value, textAlign: TextAlign.right, style: Px.text(15, weight: 500))),
-        ]),
-      );
 }

@@ -5,7 +5,7 @@ import '../../core/session/training_protocol.dart';
 import '../format.dart';
 import '../neuronek/neuronek.dart';
 import '../theme/pixel_theme.dart';
-import 'target_dial.dart';
+import '../widgets/pk_widgets.dart';
 
 class TrainingLogEntry {
   const TrainingLogEntry(this.time, this.text);
@@ -14,19 +14,21 @@ class TrainingLogEntry {
   final String text;
 }
 
-/// Trening (jeden obiekt feedbacku) oraz przerwa miedzy blokami.
+/// Trening (neuronek, wynik, pasmo celu, sygnal) oraz przerwa miedzy blokami.
 class TrainingScreen extends StatelessWidget {
   const TrainingScreen({
     super.key,
     required this.snapshot,
     required this.log,
     required this.onFinish,
+    this.history = const [],
     this.protocol = TrainingProtocol.relaks,
   });
 
   final TrainingProtocol protocol;
   final SessionSnapshot snapshot;
   final List<TrainingLogEntry> log;
+  final List<double> history;
   final VoidCallback onFinish;
 
   @override
@@ -38,6 +40,7 @@ class TrainingScreen extends StatelessWidget {
     final paused = !inBreak && fb != null && !fb.valid;
     final threshold = snapshot.threshold ?? 0.5;
     final inTarget = fb != null && fb.valid && fb.y > threshold;
+    final quality = snapshot.signalQuality;
 
     final Mood mood = inBreak
         ? Mood.sleepy
@@ -48,98 +51,137 @@ class TrainingScreen extends StatelessWidget {
                 : Mood.focused;
 
     return ScreenFrame(
-      bottom: PixelButton(label: 'Zakończ', primary: false, onPressed: onFinish),
+      footer: true,
+      bottom: PkAction(label: 'ZAKOŃCZ', onTap: onFinish, primary: false),
       child: ListView(
         children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(inBreak ? 'Przerwa' : protocol.title, style: Px.h1),
-                Text(protocol.subtitle, style: Px.caption),
-              ]),
+              child: Text(inBreak ? 'PRZERWA' : protocol.title.toUpperCase(),
+                  style: Px.t(20, height: 1.3, shadow: true)),
             ),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(mmss(left), style: Px.text(32)),
+              Text(mmss(left), style: Px.t(14, height: 1.3)),
               Text(
                 inBreak
-                    ? 'następny: blok ${snapshot.blockNo + 1} z ${snapshot.blocksTotal}'
-                    : 'blok ${snapshot.blockNo} z ${snapshot.blocksTotal}',
-                style: Px.caption,
+                    ? 'następny ${snapshot.blockNo + 1}/${snapshot.blocksTotal}'
+                    : 'blok ${snapshot.blockNo}/${snapshot.blocksTotal}',
+                style: Px.tiny,
               ),
             ]),
           ]),
-          const SizedBox(height: 8),
-          TargetDial(
-            value: paused || inBreak ? 0 : (fb?.y ?? 0.5),
-            threshold: threshold,
-            active: !paused && !inBreak,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              if (inBreak || paused)
-                Text('—', style: Px.text(72, color: Px.ink2))
-              else
-                Text(decimal(fb?.y ?? 0.5), style: Px.text(72, height: 1)),
-              Text(
-                inBreak
-                    ? 'odpoczynek'
-                    : paused
-                        ? 'wstrzymano'
-                        : inTarget
-                            ? 'w celu'
-                            : 'poniżej celu',
-                style: Px.text(20),
-              ),
-              const SizedBox(height: 8),
-              Neuronek(mood: mood, height: 64, shadow: false),
-            ]),
-          ),
-          Center(
-            child: Text(
-              inBreak
-                  ? 'Oczy możesz zamknąć, bez ruchu'
-                  : 'Pasmo celu od ${decimal(threshold)}, sygnał: ${qualityLabel(snapshot.signalQuality)}',
-              style: Px.caption,
-            ),
+          Text(protocol.subtitle, style: Px.tiny),
+          const SizedBox(height: 10),
+          SpriteWindow(
+            mood: mood,
+            height: 160,
+            top: paused
+                ? Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Container(height: 8, margin: const EdgeInsets.symmetric(horizontal: 12), color: Px.soft),
+                  )
+                : null,
           ),
           const SizedBox(height: 12),
           if (paused)
-            PixelCard(
+            PkWindow(
               color: Px.warnBg,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(
                   snapshot.lastInvalid == null
-                      ? 'Sygnał niewiarygodny'
-                      : reasonTitle(snapshot.lastInvalid!),
-                  style: Px.text(18, weight: 500),
+                      ? 'SYGNAŁ NIEWIARYGODNY'
+                      : reasonTitle(snapshot.lastInvalid!).toUpperCase(),
+                  style: Px.t(11),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   'Feedback wstrzymany. Wynik nie jest liczony, dopóki sygnał nie wróci do normy. '
                   '${snapshot.lastInvalid == null ? '' : reasonHint(snapshot.lastInvalid!)}',
-                  style: Px.secondary.copyWith(color: Px.ink),
+                  style: Px.t(9, height: 1.7),
                 ),
               ]),
             )
-          else if (!inBreak)
-            PixelCard(
-              child: Text(
-                inTarget
-                    ? 'Jesteś w celu. Cokolwiek robisz, rób to dalej.'
-                    : 'Zostań spokojny i patrz przed siebie. Nie szukam niczego na siłę.',
-                style: Px.body,
-              ),
-            ),
-          const SizedBox(height: 8),
-          for (final e in log.reversed.take(3))
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Px.soft))),
-              child: Row(children: [
-                SizedBox(width: 56, child: Text(e.time, style: Px.text(14, weight: 500))),
-                Expanded(child: Text(e.text, style: Px.secondary)),
+          else
+            PkWindow(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text(inBreak ? 'ODPOCZYNEK' : 'WYNIK', style: Px.t(9, color: Px.ink2))),
+                  Text(inBreak ? '--' : '${((fb?.y ?? 0.5) * 100).round()}',
+                      style: Px.t(30, height: 1.1, shadow: true)),
+                ]),
+                const SizedBox(height: 8),
+                PkBar(value: inBreak ? 0 : (fb?.y ?? 0.5), marker: threshold, height: 18),
+                const SizedBox(height: 8),
+                Text(
+                  inBreak
+                      ? 'Oczy możesz zamknąć, bez ruchu.'
+                      : 'Cel: moc pasma powyżej progu ${decimal(threshold)}',
+                  style: Px.tiny,
+                ),
               ]),
             ),
+          const SizedBox(height: 12),
+          if (!inBreak && !paused)
+            PkWindow(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Text('PASMO CELU', style: Px.t(9, color: Px.ink2))),
+                  Text('ostatnie 30 s', style: Px.tiny),
+                ]),
+                const SizedBox(height: 6),
+                PkChart(values: history, threshold: threshold, height: 56),
+              ]),
+            ),
+          if (!inBreak) ...[
+            const SizedBox(height: 12),
+            Row(children: [
+              Text('SYGNAŁ', style: Px.t(8, height: 1)),
+              const SizedBox(width: 10),
+              Expanded(child: _SignalBars(quality: quality, weak: paused)),
+              const SizedBox(width: 10),
+              Text(qualityLabel(quality).toUpperCase(), style: Px.t(8, height: 1)),
+            ]),
+          ],
+          const SizedBox(height: 12),
+          if (log.isNotEmpty)
+            PkWindow(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              child: Column(children: [
+                for (final e in log.reversed.take(3)) PkLeader(e.time, e.text),
+              ]),
+            ),
+          const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+}
+
+class _SignalBars extends StatelessWidget {
+  const _SignalBars({required this.quality, required this.weak});
+
+  final double? quality;
+  final bool weak;
+
+  @override
+  Widget build(BuildContext context) {
+    final filled = quality == null ? 0 : (quality! * 5).round().clamp(0, 5);
+    return Container(
+      height: 20,
+      decoration: BoxDecoration(color: Px.panel, border: Border.all(color: Px.ink, width: 2)),
+      child: Row(children: [
+        for (var i = 0; i < 5; i++)
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: i < filled ? (weak || filled <= 2 ? Px.danger : Px.accent) : Px.panel,
+                border: i == 4 ? null : const Border(right: BorderSide(color: Px.ink, width: 1)),
+              ),
+            ),
+          ),
+      ]),
     );
   }
 }

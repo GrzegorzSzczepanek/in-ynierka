@@ -10,8 +10,8 @@ var _fontsLoaded = false;
 Future<void> loadAppFonts() async {
   if (_fontsLoaded) return;
   _fontsLoaded = true;
-  final loader = FontLoader('IBMPlexSans')
-    ..addFont(rootBundle.load('assets/fonts/IBMPlexSans-Variable.ttf'));
+  final loader = FontLoader('PressStart2P')
+    ..addFont(rootBundle.load('assets/fonts/PressStart2P-Regular.ttf'));
   await loader.load();
 }
 
