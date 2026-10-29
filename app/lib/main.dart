@@ -36,6 +36,7 @@ Future<void> main() async {
   EegSource Function() factory = () => MockSource(
         alphaAmplitudeUv: (t) => 12 + 10 * (t > 90 ? 1 : 0),
         betaAmplitudeUv: (t) => 4 + 6 * (t > 90 ? 1 : 0),
+        contactAt: (t) => t > 3,
         realtime: true,
       );
   if (real) {
@@ -54,6 +55,7 @@ Future<void> main() async {
       sourceType: real ? 'device' : 'mock',
       deviceIdentifier: real ? _device : null,
       sourceLabel: real ? 'Czepek' : 'Demo',
+      exportDir: '${(await getApplicationDocumentsDirectory()).path}/NEUROtchi/eksport',
       channelsOverride: training,
     ),
   ));

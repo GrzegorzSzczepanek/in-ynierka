@@ -86,6 +86,26 @@ const barsIcon = [
   '########',
 ];
 
+const eyeIcon = [
+  '..####..',
+  '.#....#.',
+  '#..##..#',
+  '#.####.#',
+  '#..##..#',
+  '.#....#.',
+  '..####..',
+];
+
+const monitorIcon = [
+  '########',
+  '#......#',
+  '#.#..#.#',
+  '#..##..#',
+  '#......#',
+  '########',
+  '..####..',
+];
+
 const plugIcon = [
   '.#.#.#.#',
   '.#.#.#.#',
@@ -103,12 +123,14 @@ class PkTile extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.selected = false,
+    this.big = false,
   });
 
   final String label;
   final List<String> icon;
   final VoidCallback onTap;
   final bool selected;
+  final bool big;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -118,12 +140,12 @@ class PkTile extends StatelessWidget {
           onTap: onTap,
           behavior: HitTestBehavior.opaque,
           child: Container(
-            height: 76,
+            height: big ? 112 : 76,
             color: selected ? Px.accentLight : null,
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              PkIcon(icon, color: Px.accent),
-              const SizedBox(height: 8),
-              Text(label, style: Px.t(8, height: 1)),
+              PkIcon(icon, color: Px.accent, unit: big ? 6 : 4),
+              SizedBox(height: big ? 12 : 8),
+              Text(label, style: Px.t(big ? 10 : 8, height: 1)),
             ]),
           ),
         ),
@@ -198,4 +220,38 @@ class _ChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ChartPainter old) =>
       old.values != values || old.threshold != threshold || old.bars != bars;
+}
+
+/// Wybór oceny 1..5 w oknie, zaznaczona wartość podświetlona z kursorem.
+class PkRating extends StatelessWidget {
+  const PkRating({super.key, required this.value, required this.onChanged, this.label});
+
+  final int? value;
+  final ValueChanged<int> onChanged;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) => PkWindow(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+        child: Row(children: [
+          for (var i = 1; i <= 5; i++)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: value == i,
+                label: '${label ?? 'Ocena'} $i',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(i),
+                  child: Container(
+                    height: 44,
+                    color: value == i ? Px.accentLight : null,
+                    alignment: Alignment.center,
+                    child: Text('$i', style: Px.t(14, height: 1)),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      );
 }

@@ -227,3 +227,6 @@ scripts/brainaccess_probe/probe_dump*.csv
 
 # app/lib to kod Flutter, a nie katalog biblioteki Pythona
 !/app/lib/
+
+# zrzuty bledow porownania goldenow
+app/test/**/failures/

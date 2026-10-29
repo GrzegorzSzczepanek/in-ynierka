@@ -16,9 +16,16 @@ import 'training_screen.dart';
 
 /// Jedna sesja od laczenia do podsumowania. Ekran wynika z fazy sesji.
 class SessionFlowScreen extends StatefulWidget {
-  const SessionFlowScreen({super.key, this.protocol = TrainingProtocol.relaks});
+  const SessionFlowScreen({
+    super.key,
+    this.protocol = TrainingProtocol.relaks,
+    this.calibrationOnly = false,
+  });
 
   final TrainingProtocol protocol;
+
+  /// Tylko kalibracja, bez blokow; po wyniku ekran sam sie zamyka.
+  final bool calibrationOnly;
 
   @override
   State<SessionFlowScreen> createState() => _SessionFlowScreenState();
@@ -26,6 +33,8 @@ class SessionFlowScreen extends StatefulWidget {
 
 class _SessionFlowScreenState extends State<SessionFlowScreen> {
   SessionController? _controller;
+  int? _sessionId;
+  int? _mood;
   StreamSubscription<SessionSnapshot>? _sub;
   late SessionConfig _config;
   SessionSnapshot? _snapshot;
@@ -48,8 +57,9 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
 
   void _start() {
     final services = ServicesScope.of(context);
-    _config = services.sessionConfigFor(widget.protocol);
+    _config = services.sessionConfigFor(widget.protocol, calibrationOnly: widget.calibrationOnly);
     _result = null;
+    _mood = null;
     _log.clear();
     _history.clear();
     _lastRewards = 0;
@@ -63,10 +73,12 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       appVersion: services.appVersion,
       rawDir: services.rawDir,
     );
+    _sessionId = persistence.sessionId;
     final controller = _controller = SessionController(
       sourceFactory: services.sourceFactory,
       config: _config,
       onItem: persistence.onItem,
+      stored: services.repository.lastCalibration(widget.protocol),
     );
     _sub = controller.snapshots.listen(_onSnapshot);
     unawaited(_run(controller, persistence, services.repository));
@@ -76,6 +88,10 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     final result = await c.run();
     await p.finish(result);
     if (!mounted) return;
+    if (widget.calibrationOnly && result.status == SessionStatus.completed) {
+      Navigator.of(context).pop();
+      return;
+    }
     setState(() {
       _result = result;
       _recent = repo.history().where((s) => s.id != p.sessionId).toList();
@@ -113,7 +129,14 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
 
   void _finish() => _controller?.finish();
 
-  void _leave() => Navigator.of(context).pop();
+  void _leave() {
+    final id = _sessionId;
+    final mood = _mood;
+    if (id != null && mood != null && (_result?.countsForProgress ?? false)) {
+      ServicesScope.of(context).repository.setMood(id, mood);
+    }
+    Navigator.of(context).pop();
+  }
 
   void _restart() {
     _sub?.cancel();
@@ -129,7 +152,13 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     final s = _snapshot;
     if (result != null && result.status != SessionStatus.connectionLost) {
       return SummaryScreen(
-          result: result, recent: _recent, onDone: _leave, protocol: widget.protocol);
+        result: result,
+        recent: _recent,
+        onDone: _leave,
+        protocol: widget.protocol,
+        mood: _mood,
+        onMood: (v) => setState(() => _mood = v),
+      );
     }
     if (s == null) {
       return ConnectionScreen(
@@ -141,7 +170,15 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     }
     switch (s.phase) {
       case SessionPhase.calibrating:
-        return CalibrationScreen(snapshot: s, onFinish: _finish);
+      case SessionPhase.calibratingClosed:
+      case SessionPhase.calibrationResult:
+        return CalibrationScreen(
+          snapshot: s,
+          onFinish: _finish,
+          closedStep: _config.closedStep,
+          reactivityMin: _config.alphaReactivityMin,
+          onSkip: s.canSkipCalibration ? _controller?.skipCalibration : null,
+        );
       case SessionPhase.training:
       case SessionPhase.breakBetweenBlocks:
         return TrainingScreen(
@@ -149,7 +186,10 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
             log: _log,
             history: List.of(_history),
             onFinish: _finish,
-            protocol: widget.protocol);
+            protocol: widget.protocol,
+            onPause: _controller?.pause,
+            onResume: _controller?.resume,
+            onRate: (r) => _controller?.rateBlock(s.blockNo, r));
       case SessionPhase.connecting:
       case SessionPhase.contactCheck:
       case SessionPhase.reconnecting:

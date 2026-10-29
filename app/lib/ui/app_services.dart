@@ -18,6 +18,7 @@ class AppServices {
     this.channelsOverride,
     this.configOverride,
     this.sourceLabel = 'Demo',
+    this.exportDir = '',
   });
 
   final SessionRepository repository;
@@ -28,14 +29,20 @@ class AppServices {
   final String deviceModel;
   final String appVersion;
   final String sourceLabel;
+
+  /// Katalog eksportu sesji (tryb badacza).
+  final String exportDir;
   /// Nadpisanie kanalow treningowych (np. nazwy kanalow czepka bez mapowania 10-20).
   final List<String>? channelsOverride;
   final SessionConfig? configOverride;
 
-  SessionConfig sessionConfigFor(TrainingProtocol protocol) =>
+  SessionConfig sessionConfigFor(TrainingProtocol protocol, {bool calibrationOnly = false}) =>
       configOverride ??
-      repository.sessionConfig(
-          SessionConfig(protocol: protocol, trainingChannels: channelsOverride));
+      repository.sessionConfig(SessionConfig(
+        protocol: protocol,
+        trainingChannels: channelsOverride,
+        calibrationOnly: calibrationOnly,
+      ));
 
   SessionConfig get sessionConfig => sessionConfigFor(TrainingProtocol.relaks);
 }

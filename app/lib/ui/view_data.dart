@@ -2,22 +2,19 @@ import '../core/db/session_repository.dart';
 import 'screens/home_screen.dart';
 import 'screens/progress_screen.dart';
 
-HomeData homeData(SessionRepository repo, {required int trainingMinutes, required String sourceLabel}) {
-  final stages = repo.unlockedStages();
-  final current = stages.last;
-  final next = repo.nextStage;
-  final total = repo.totalValidMinutes();
-  final span = next == null ? 0 : next.requiredValidMinutes - current.requiredValidMinutes;
+HomeData homeData(SessionRepository repo, {required int trainingMinutes, DateTime? now}) {
+  final t = now ?? DateTime.now();
+  final current = repo.unlockedStages().last;
+  final mood = repo.recentMoodAverage();
+  final weekGoal = 3.0 * trainingMinutes;
   return HomeData(
     stageNo: current.sortOrder,
     stageName: current.name,
-    stageProgress: next == null || span <= 0
-        ? 1
-        : ((total - current.requiredValidMinutes) / span).clamp(0, 1),
-    minutesToNext: next == null ? null : next.requiredValidMinutes - total,
-    sourceLabel: sourceLabel,
     trainingMinutes: trainingMinutes,
-    channelsLabel: sourceLabel,
+    energy: (repo.validMinutesSince(t.subtract(const Duration(days: 7))) / weekGoal).clamp(0.0, 1.0),
+    mood: mood == null ? null : ((mood - 1) / 4).clamp(0.0, 1.0),
+    focus: repo.lastSessionTargetShare(),
+    streakDays: repo.streakDays(t),
   );
 }
 

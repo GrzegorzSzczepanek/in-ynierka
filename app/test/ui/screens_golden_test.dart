@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neurotchi/core/db/session_repository.dart';
 import 'package:neurotchi/core/dsp/alpha_pipeline.dart';
-import 'package:neurotchi/core/dsp/calibration.dart';
+import 'package:neurotchi/core/dsp/calibration.dart' as cal;
 import 'package:neurotchi/core/session/session_models.dart';
 import 'package:neurotchi/core/session/training_protocol.dart';
+import 'package:neurotchi/ui/screens/calibration_hub_screen.dart';
 import 'package:neurotchi/ui/screens/calibration_screen.dart';
 import 'package:neurotchi/ui/screens/connection_screen.dart';
 import 'package:neurotchi/ui/screens/home_screen.dart';
@@ -12,11 +13,22 @@ import 'package:neurotchi/ui/screens/progress_screen.dart';
 import 'package:neurotchi/ui/screens/summary_screen.dart';
 import 'package:neurotchi/ui/screens/training_screen.dart';
 
+import 'package:neurotchi/core/db/app_database.dart';
+import 'package:neurotchi/core/eeg/mock_source.dart';
+import 'package:neurotchi/core/research/latency.dart';
+import 'package:neurotchi/core/research/research_monitor.dart';
+import 'package:neurotchi/ui/app_services.dart';
+import 'package:neurotchi/ui/screens/research_screen.dart';
+
 import '../support/golden_support.dart';
 
 void noop() {}
 
 void _ignore(TrainingProtocol _) {}
+
+void _rate(int _) {}
+
+void _mood(int _) {}
 
 Future<void> golden(WidgetTester t, String name, Widget screen) async {
   await pumpScreen(t, screen);
@@ -26,30 +38,52 @@ Future<void> golden(WidgetTester t, String name, Widget screen) async {
 void main() {
   testWidgets('dom', (t) => golden(t, 'dom', const HomeScreen(
         data: HomeData(
-          stageNo: 1,
-          stageName: 'soma',
-          stageProgress: 0.35,
-          minutesToNext: 6.5,
-          sourceLabel: 'Czepek',
+          stageNo: 3,
+          stageName: 'dwa neurony',
           trainingMinutes: 9,
-          channelsLabel: '16/32 kanałów',
+          energy: 0.7,
+          mood: 0.75,
+          focus: 0.48,
+          streakDays: 3,
         ),
         selected: TrainingProtocol.relaks,
         onSelect: _ignore,
         onStart: noop,
         onProgress: noop,
+        onConnection: noop,
+        onCalibration: noop,
+        onResearch: noop,
       )));
 
-  testWidgets('dom: skupienie', (t) => golden(t, 'dom_skupienie', const HomeScreen(
-        data: HomeData(
-          stageNo: 2,
-          stageName: 'neuron',
-          stageProgress: 0.5,
-          minutesToNext: 10,
-          sourceLabel: 'Czepek',
+  testWidgets('dom: desktop', (t) async {
+    await pumpScreen(
+      t,
+      HomeScreen(
+        data: const HomeData(
+          stageNo: 3,
+          stageName: 'dwa neurony',
           trainingMinutes: 9,
-          channelsLabel: '16/32 kanałów',
+          energy: 0.7,
+          mood: 0.75,
+          focus: 0.48,
+          streakDays: 3,
         ),
+        selected: TrainingProtocol.relaks,
+        onSelect: _ignore,
+        onStart: noop,
+        onProgress: noop,
+        onConnection: noop,
+        onCalibration: noop,
+        onResearch: noop,
+        animated: false,
+      ),
+      size: const Size(1200, 760),
+    );
+    await expectLater(find.byType(MaterialApp), matchesGoldenFile('../goldens/dom_desktop.png'));
+  });
+
+  testWidgets('dom: skupienie', (t) => golden(t, 'dom_skupienie', const HomeScreen(
+        data: HomeData(stageNo: 2, stageName: 'neuron', trainingMinutes: 9),
         selected: TrainingProtocol.skupienie,
         onSelect: _ignore,
         onStart: noop,
@@ -78,13 +112,30 @@ void main() {
         onRetry: noop,
       )));
 
-  testWidgets('kalibracja', (t) => golden(t, 'kalibracja', const CalibrationScreen(
-        snapshot: SessionSnapshot(
-          phase: SessionPhase.calibrating,
-          phaseElapsedS: 18,
-          phaseDurationS: 60,
-          attempt: 2,
+  testWidgets('kalibracja: oczy zamkniete', (t) => golden(t, 'kalibracja', CalibrationScreen(
+        snapshot: const SessionSnapshot(
+          phase: SessionPhase.calibratingClosed,
+          phaseElapsedS: 12,
+          phaseDurationS: 30,
+          attempt: 1,
           signalQuality: 0.9,
+          threshold: 0.6,
+          canSkipCalibration: true,
+        ),
+        onFinish: noop,
+        onSkip: noop,
+      )));
+
+  testWidgets('kalibracja: wynik', (t) => golden(t, 'kalibracja_wynik', const CalibrationScreen(
+        snapshot: SessionSnapshot(
+          phase: SessionPhase.calibrationResult,
+          phaseElapsedS: 1,
+          phaseDurationS: 4,
+          attempt: 1,
+          signalQuality: 0.9,
+          threshold: 0.6,
+          alphaRatio: 2.4,
+          alphaPeakHz: 10.1,
         ),
         onFinish: noop,
       )));
@@ -97,7 +148,7 @@ void main() {
           blockNo: 2,
           blocksTotal: 3,
           threshold: 0.6,
-          feedback: FeedbackSample(valid: true, y: 0.72),
+          feedback: cal.FeedbackSample(valid: true, y: 0.72),
           signalQuality: 0.95,
         ),
         history: [0.4, 0.45, 0.5, 0.48, 0.55, 0.6, 0.58, 0.66, 0.7, 0.72],
@@ -106,6 +157,25 @@ void main() {
           TrainingLogEntry('02:41', 'Próg 0,60, sygnał: dobry'),
         ],
         onFinish: noop,
+        onPause: noop,
+      )));
+
+  testWidgets('trening: pauza', (t) => golden(t, 'trening_pauza', const TrainingScreen(
+        snapshot: SessionSnapshot(
+          phase: SessionPhase.training,
+          phaseElapsedS: 68,
+          phaseDurationS: 180,
+          blockNo: 2,
+          blocksTotal: 3,
+          threshold: 0.6,
+          paused: true,
+          feedback: cal.FeedbackSample(valid: true, y: 0.7),
+          signalQuality: 0.95,
+        ),
+        log: [],
+        onFinish: noop,
+        onPause: noop,
+        onResume: noop,
       )));
 
   testWidgets('trening: artefakt', (t) => golden(t, 'trening_artefakt', const TrainingScreen(
@@ -116,7 +186,7 @@ void main() {
           blockNo: 2,
           blocksTotal: 3,
           threshold: 0.6,
-          feedback: FeedbackSample(valid: false, y: 0.5),
+          feedback: cal.FeedbackSample(valid: false, y: 0.5),
           lastInvalid: InvalidReason.amplitude,
           signalQuality: 0.3,
         ),
@@ -132,9 +202,11 @@ void main() {
           blockNo: 1,
           blocksTotal: 3,
           threshold: 0.6,
+          controlRating: 4,
         ),
         log: [],
         onFinish: noop,
+        onRate: _rate,
       )));
 
   testWidgets('podsumowanie', (t) {
@@ -149,6 +221,10 @@ void main() {
           validSignalS: 170.0 + i * 2,
           timeAboveThresholdS: 60.0 + i * 12,
           rewardCount: i + 1,
+          meanY: 0.35 + i * 0.13,
+          yTrace: [for (var k = 0; k < 6; k++) 0.3 + i * 0.1 + k * 0.04],
+          windowsTotal: 150,
+          windowsInvalid: i == 2 ? 11 : 0,
           events: const [],
           invalid: i == 2
               ? const [
@@ -162,10 +238,13 @@ void main() {
       result: SessionResult(
         status: SessionStatus.completed,
         calibrations: const [
-          CalibrationRecord(1, 60, CalibrationResult(accepted: true, validRatio: 0.95)),
+          CalibrationRecord(1, 60, cal.CalibrationResult(accepted: true, validRatio: 0.95)),
         ],
         blocks: blocks,
+        controlRatings: const {1: 2, 2: 3, 3: 4},
       ),
+      mood: 4,
+      onMood: _mood,
       recent: [
         for (var i = 0; i < 5; i++)
           SessionRow(id: i, createdAt: DateTime(2026, 10, 20 + i), status: 'completed', validMinutes: 6.0 + i, blocksTotal: 3),
@@ -193,4 +272,56 @@ void main() {
           ],
         ),
       )));
+
+  testWidgets('kalibracja: ostatni wynik', (t) => golden(t, 'kalibracja_hub', CalibrationHubScreen(
+        protocol: TrainingProtocol.relaks,
+        stored: StoredCalibration(
+          baseline: const cal.Baseline(3.1, 0.45),
+          thresholdY: 0.58,
+          alphaRatio: 2.4,
+          alphaPeakHz: 10.1,
+          createdAt: DateTime(2026, 10, 27),
+        ),
+        onCalibrate: noop,
+        onBack: noop,
+      )));
+
+  for (final (name, size) in [('badacz', const Size(1200, 760)), ('badacz_waski', const Size(390, 1500))]) {
+    testWidgets(name, (t) async {
+      final m = ResearchMonitor(() => MockSource(
+            duration: const Duration(seconds: 14),
+            alphaAmplitudeUv: (_) => 15,
+            noiseUv: 4,
+          ));
+      await t.runAsync(() => m.start());
+      final db = AppDatabase.inMemory();
+      final services = AppServices(
+        repository: SessionRepository(db),
+        rawDir: '/tmp',
+        sourceFactory: () => MockSource(),
+      );
+      await pumpScreen(
+        t,
+        ServicesScope(
+          services: services,
+          child: ResearchScreen(
+            monitor: m,
+            reportOverride: LatencyReport.from(
+              filterUs: [1800, 2000, 2600],
+              qualityUs: [900, 1000, 1100],
+              welchUs: [3100, 3300, 4400],
+              smoothUs: [100, 100, 100],
+              receiveUs: [42000, 50000, 88000],
+              renderUs: [17000, 20000, 33000],
+              stepMs: 256,
+            ),
+          ),
+        ),
+        size: size,
+      );
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('../goldens/$name.png'));
+      await t.pumpWidget(const SizedBox());
+      db.close();
+    });
+  }
 }

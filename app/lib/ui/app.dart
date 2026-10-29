@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../core/session/training_protocol.dart';
 import 'app_services.dart';
+import 'screens/calibration_hub_screen.dart';
+import 'screens/connection_check_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/progress_screen.dart';
+import 'screens/research_screen.dart';
 import 'screens/session_flow_screen.dart';
 import 'theme/pixel_theme.dart';
 import 'view_data.dart';
@@ -48,11 +51,13 @@ class _HomeRouteState extends State<_HomeRoute> {
       data: homeData(
         services.repository,
         trainingMinutes: (config.blocks * config.blockS / 60).round(),
-        sourceLabel: services.sourceLabel,
       ),
       selected: _selected,
       onSelect: (p) => setState(() => _selected = p),
       onStart: () => _open(SessionFlowScreen(protocol: _selected)),
+      onConnection: () => _open(ConnectionCheckScreen(protocol: _selected)),
+      onCalibration: () => _open(_CalibrationRoute(protocol: _selected)),
+      onResearch: () => _open(ResearchScreen(protocol: _selected)),
       onProgress: () => _open(Builder(
         builder: (ctx) => ProgressScreen(
           data: progressData(services.repository, DateTime.now()),
@@ -60,6 +65,34 @@ class _HomeRouteState extends State<_HomeRoute> {
           onBack: () => Navigator.of(ctx).pop(),
         ),
       )),
+    );
+  }
+}
+
+/// Kalibracja z menu: ostatni wynik, a przycisk uruchamia sama kalibracje.
+class _CalibrationRoute extends StatefulWidget {
+  const _CalibrationRoute({required this.protocol});
+
+  final TrainingProtocol protocol;
+
+  @override
+  State<_CalibrationRoute> createState() => _CalibrationRouteState();
+}
+
+class _CalibrationRouteState extends State<_CalibrationRoute> {
+  @override
+  Widget build(BuildContext context) {
+    final services = ServicesScope.of(context);
+    return CalibrationHubScreen(
+      protocol: widget.protocol,
+      stored: services.repository.lastCalibration(widget.protocol),
+      onBack: () => Navigator.of(context).pop(),
+      onCalibrate: () async {
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => SessionFlowScreen(protocol: widget.protocol, calibrationOnly: true),
+        ));
+        if (mounted) setState(() {});
+      },
     );
   }
 }

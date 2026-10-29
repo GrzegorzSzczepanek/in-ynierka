@@ -16,7 +16,13 @@ class SummaryScreen extends StatelessWidget {
     required this.recent,
     required this.onDone,
     this.protocol = TrainingProtocol.relaks,
+    this.mood,
+    this.onMood,
   });
+
+  /// Ocena samopoczucia 1..5 (opcjonalna), zapisywana przy "Zapisz i wroc".
+  final int? mood;
+  final ValueChanged<int>? onMood;
 
   final TrainingProtocol protocol;
   final SessionResult result;
@@ -83,6 +89,25 @@ class SummaryScreen extends StatelessWidget {
             const SizedBox(height: 12),
             PkWindow(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Wskaźnik co 30 s, kreska to próg', style: Px.tiny),
+                const SizedBox(height: 8),
+                PkChart(
+                  bars: true,
+                  height: 80,
+                  values: [for (final b in blocks) ...b.yTrace],
+                  threshold: blocks.first.threshold,
+                ),
+                const SizedBox(height: 8),
+                PkLeader('Średnia w blokach', blocks.map((b) => decimal(b.meanY).replaceFirst('0,', ',')).join(' ')),
+                PkLeader('Odrzucone okna', '${blocks.fold(0, (a, b) => a + b.windowsInvalid)}/${blocks.fold(0, (a, b) => a + b.windowsTotal)}'),
+                if (result.controlRatings.isNotEmpty)
+                  PkLeader('Poczucie kontroli', [for (final b in blocks) result.controlRatings[b.blockNo]?.toString() ?? '-'].join(' ')),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            PkWindow(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: Column(children: [
                 PkLeader('Odrzucone fragmenty', '${intervals.length} (${mSs(invalidMs / 1000)})'),
                 for (final e in (reasons.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).take(3))
@@ -112,6 +137,13 @@ class SummaryScreen extends StatelessWidget {
                 Text('poprawne minuty w kolejnych sesjach', style: Px.tiny),
               ]),
             ),
+          ],
+          if (onMood != null && blocks.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('JAK SIĘ CZUJESZ?', style: Px.t(10)),
+            Text('1 spięty, 5 zrelaksowany', style: Px.tiny),
+            const SizedBox(height: 6),
+            PkRating(value: mood, onChanged: onMood!, label: 'Samopoczucie'),
           ],
           const SizedBox(height: 8),
         ],

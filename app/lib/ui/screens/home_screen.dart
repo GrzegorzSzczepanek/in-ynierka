@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/session/training_protocol.dart';
@@ -9,30 +11,30 @@ class HomeData {
   const HomeData({
     required this.stageNo,
     required this.stageName,
-    required this.stageProgress,
-    required this.minutesToNext,
-    required this.sourceLabel,
     required this.trainingMinutes,
-    required this.channelsLabel,
+    this.energy = 0,
+    this.mood,
+    this.focus,
     this.streakDays = 0,
-    this.weekSessions = 0,
-    this.weekGoal = 3,
   });
 
   final int stageNo;
   final String stageName;
-
-  /// Postep do nastepnego etapu 0..1 (1 dla ostatniego).
-  final double stageProgress;
-  final double? minutesToNext;
-  final String sourceLabel;
   final int trainingMinutes;
-  final String channelsLabel;
+
+  /// Poprawne minuty z ostatnich 7 dni wzgledem celu tygodnia (0..1).
+  final double energy;
+
+  /// Srednia z ostatnich ocen samopoczucia (0..1) lub null, gdy brak ocen.
+  final double? mood;
+
+  /// Udzial czasu w celu w ostatniej sesji (0..1) lub null.
+  final double? focus;
   final int streakDays;
-  final int weekSessions;
-  final int weekGoal;
 }
 
+/// Ekran główny. Na szerokim oknie (od 900 dp) neuronek ma wybieg,
+/// a kafelki leżą luźno na dolnym pasku.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key,
@@ -41,6 +43,10 @@ class HomeScreen extends StatelessWidget {
     required this.onSelect,
     required this.onStart,
     required this.onProgress,
+    this.onConnection,
+    this.onCalibration,
+    this.onResearch,
+    this.animated = true,
   });
 
   final HomeData data;
@@ -48,96 +54,237 @@ class HomeScreen extends StatelessWidget {
   final ValueChanged<TrainingProtocol> onSelect;
   final VoidCallback onStart;
   final VoidCallback onProgress;
+  final VoidCallback? onConnection;
+  final VoidCallback? onCalibration;
+  final VoidCallback? onResearch;
+  final bool animated;
+
+  static const desktopWidth = 900.0;
 
   @override
-  Widget build(BuildContext context) => ScreenFrame(
-        footer: true,
-        child: ListView(
-          children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, c) =>
+            c.maxWidth >= desktopWidth ? _desktop(context) : _mobile(context),
+      );
+
+  Widget _hud({bool wide = false}) => PkWindow(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Text('NEURONEK', style: Px.t(13, height: 1.5))),
+            Text(':L${data.stageNo}', style: Px.t(12, height: 1.5)),
+          ]),
+          const SizedBox(height: 2),
+          Text('etap: ${data.stageName}', style: Px.tiny),
+          const SizedBox(height: 6),
+          _stat('ENERG', data.energy),
+          const SizedBox(height: 6),
+          _stat('NASTR', data.mood ?? 0, unknown: data.mood == null),
+          const SizedBox(height: 6),
+          _stat('FOKUS', data.focus ?? 0, unknown: data.focus == null),
+        ]),
+      );
+
+  Widget _stat(String label, double v, {bool unknown = false}) => Row(children: [
+        SizedBox(width: 52, child: Text(label, style: Px.t(8, height: 1))),
+        Expanded(child: PkBar(value: v, height: 12)),
+        if (unknown) Padding(padding: const EdgeInsets.only(left: 6), child: Text('--', style: Px.tiny)),
+      ]);
+
+  Widget _streak() => SizedBox(
+        width: 92,
+        child: PkWindow(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          child: Column(children: [
+            Text('SERIA', style: Px.t(8, height: 1.3)),
+            Text('${data.streakDays}', style: Px.t(28, height: 1.3, shadow: true)),
+            Text('DNI', style: Px.t(8, height: 1.3)),
+          ]),
+        ),
+      );
+
+  Widget _menu() => PkMenu(rows: [
+        for (final p in TrainingProtocol.all)
+          PkMenuRow(
+            label: p.title.toUpperCase(),
+            sub: p.subtitle,
+            trailing: '${data.trainingMinutes} min',
+            selected: p == selected,
+            onTap: () => onSelect(p),
+          ),
+      ]);
+
+  String get _dialog => 'Dziś ${selected.title.toLowerCase()}, ${data.trainingMinutes} min. '
+      'Najpierw sprawdzę kontakt elektrod.';
+
+  List<Widget> _tiles({bool big = false}) => [
+        PkTile(label: 'TRENING', icon: boltIcon, onTap: onStart, selected: true, big: big),
+        if (onConnection != null)
+          PkTile(label: 'POŁĄCZENIE', icon: plugIcon, onTap: onConnection!, big: big),
+        if (onCalibration != null)
+          PkTile(label: 'KALIBRACJA', icon: eyeIcon, onTap: onCalibration!, big: big),
+        PkTile(label: 'POSTĘP', icon: barsIcon, onTap: onProgress, big: big),
+        if (onResearch != null)
+          PkTile(label: 'BADACZ', icon: monitorIcon, onTap: onResearch!, big: big),
+      ];
+
+  Widget _mobile(BuildContext context) {
+    final tiles = _tiles();
+    return ScreenFrame(
+      footer: true,
+      child: ListView(
+        children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: _hud()),
+            const SizedBox(width: 8),
+            _streak(),
+          ]),
+          const SizedBox(height: 12),
+          PkWindow(
+            padding: EdgeInsets.zero,
+            child: SizedBox(
+              height: 150,
+              child: ClipRect(
+                child: Stack(children: [
+                  Positioned.fill(child: CustomPaint(painter: _RoomPainter())),
+                  const Align(alignment: Alignment(0, 0.45), child: Neuronek(height: 100)),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          PkDialog(text: _dialog),
+          const SizedBox(height: 10),
+          Text('WYBIERZ TRENING', style: Px.t(10)),
+          const SizedBox(height: 6),
+          _menu(),
+          const SizedBox(height: 10),
+          PkWindow(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(children: [
+              for (var i = 0; i < tiles.length; i += 3)
+                Row(children: [
+                  for (var j = i; j < i + 3; j++)
+                    Expanded(child: j < tiles.length ? tiles[j] : const SizedBox(height: 76)),
+                ]),
+            ]),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _desktop(BuildContext context) => Scaffold(
+        backgroundColor: Px.bg,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(width: 340, child: _hud(wide: true)),
+                const SizedBox(width: 12),
+                _streak(),
+                const Spacer(),
+                SizedBox(
+                  width: 330,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('WYBIERZ TRENING', style: Px.t(10)),
+                    const SizedBox(height: 8),
+                    _menu(),
+                  ]),
+                ),
+              ]),
+              const SizedBox(height: 16),
               Expanded(
                 child: PkWindow(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Expanded(child: Text('NEURONEK', style: Px.t(13, height: 1.5))),
-                      Text(':L${data.stageNo}', style: Px.t(12, height: 1.5)),
-                    ]),
-                    const SizedBox(height: 4),
-                    Text('etap: ${data.stageName}', style: Px.tiny),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      SizedBox(width: 46, child: Text('ETAP', style: Px.t(8, height: 1))),
-                      Expanded(child: PkBar(value: data.stageProgress, height: 12)),
-                    ]),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      SizedBox(width: 46, child: Text('TYDZ', style: Px.t(8, height: 1))),
-                      Expanded(
-                        child: PkBar(
-                          value: data.weekGoal == 0 ? 0 : data.weekSessions / data.weekGoal,
-                          height: 12,
-                        ),
+                  padding: EdgeInsets.zero,
+                  child: ClipRect(
+                    child: Stack(children: [
+                      Positioned.fill(child: CustomPaint(painter: _RoomPainter())),
+                      Positioned.fill(child: _Wanderer(animated: animated)),
+                      Positioned(
+                        left: 20,
+                        bottom: 20,
+                        width: 430,
+                        child: PkDialog(text: _dialog),
                       ),
                     ]),
-                  ]),
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 92,
-                child: PkWindow(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-                  child: Column(children: [
-                    Text('SERIA', style: Px.t(8, height: 1.3)),
-                    Text('${data.streakDays}', style: Px.t(28, height: 1.3, shadow: true)),
-                    Text('DNI', style: Px.t(8, height: 1.3)),
-                  ]),
-                ),
+              const SizedBox(height: 16),
+              PkWindow(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                child: Row(children: [
+                  for (final t in _tiles(big: true)) Expanded(child: t),
+                ]),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Prototyp edukacyjny. To nie jest terapia ani diagnoza.', style: Px.tiny),
               ),
             ]),
-            const SizedBox(height: 12),
-            PkWindow(
-              padding: EdgeInsets.zero,
-              child: SizedBox(
-                height: 210,
-                child: ClipRect(
-                  child: Stack(children: [
-                    Positioned.fill(child: CustomPaint(painter: _RoomPainter())),
-                    const Align(alignment: Alignment(0, 0.35), child: Neuronek(height: 140)),
-                  ]),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            PkDialog(
-              text: 'Dziś ${selected.title.toLowerCase()}, ${data.trainingMinutes} min. '
-                  'Najpierw sprawdzę kontakt elektrod.',
-            ),
-            const SizedBox(height: 12),
-            Text('WYBIERZ TRENING', style: Px.t(10)),
-            const SizedBox(height: 8),
-            PkMenu(rows: [
-              for (final p in TrainingProtocol.all)
-                PkMenuRow(
-                  label: p.title.toUpperCase(),
-                  sub: p.subtitle,
-                  trailing: '${data.trainingMinutes} min',
-                  selected: p == selected,
-                  onTap: () => onSelect(p),
-                ),
-            ]),
-            const SizedBox(height: 12),
-            PkWindow(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(children: [
-                Expanded(child: PkTile(label: 'TRENING', icon: boltIcon, onTap: onStart, selected: true)),
-                Expanded(child: PkTile(label: 'POSTĘP', icon: barsIcon, onTap: onProgress)),
-              ]),
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
+      );
+}
+
+/// Neuronek spaceruje po wybiegu: powoli w prawo i w lewo, kiwa się, czasem się nudzi.
+class _Wanderer extends StatefulWidget {
+  const _Wanderer({required this.animated});
+
+  final bool animated;
+
+  @override
+  State<_Wanderer> createState() => _WandererState();
+}
+
+class _WandererState extends State<_Wanderer> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 16),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animated) _c.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, box) {
+          final h = math.min(box.maxHeight * 0.55, 260.0);
+          return AnimatedBuilder(
+            animation: _c,
+            builder: (context, _) {
+              final t = Curves.easeInOut.transform(_c.value);
+              final span = box.maxWidth - h * 0.9 - 80;
+              final x = 40 + span * (widget.animated ? t : 0.5);
+              final bob = widget.animated ? math.sin(_c.value * math.pi * 2 * 18).abs() * 6 : 0.0;
+              final goingLeft = _c.status == AnimationStatus.reverse;
+              final resting = widget.animated && (_c.value < 0.04 || _c.value > 0.96);
+              return Stack(children: [
+                Positioned(
+                  left: x,
+                  bottom: box.maxHeight * 0.14 + bob,
+                  child: Transform.flip(
+                    flipX: goingLeft,
+                    child: Neuronek(mood: resting ? Mood.sleepy : Mood.happy, height: h),
+                  ),
+                ),
+              ]);
+            },
+          );
+        },
       );
 }
 
@@ -148,7 +295,7 @@ class _RoomPainter extends CustomPainter {
     final wallH = size.height * 0.5;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, wallH), Paint()..color = const Color(0xFFD7E3FB));
     canvas.drawRect(Rect.fromLTWH(0, wallH - 3, size.width, 3), Paint()..color = Px.ink);
-    const tile = 24.0;
+    const tile = 28.0;
     for (var y = wallH; y < size.height; y += tile) {
       for (var x = 0.0; x < size.width; x += tile) {
         final dark = (((x / tile).floor() + ((y - wallH) / tile).floor()) % 2) == 0;

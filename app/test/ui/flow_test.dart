@@ -29,6 +29,8 @@ void main() {
     await t.pumpWidget(NeurotchiApp(services: services));
     expect(find.text('TRENING'), findsOneWidget);
     expect(find.text('NEURONEK'), findsOneWidget);
+    expect(find.text('ENERG'), findsOneWidget);
+    expect(find.text('KALIBRACJA'), findsOneWidget);
     expect(find.textContaining('relaks, 9 min'), findsOneWidget);
     expect(find.text('RELAKS'), findsOneWidget);
     expect(find.text('SKUPIENIE'), findsOneWidget);
@@ -38,6 +40,7 @@ void main() {
     await t.tap(find.text('RELAKS'));
     await t.pump();
 
+    await t.ensureVisible(find.text('POSTĘP'));
     await t.tap(find.text('POSTĘP'));
     await t.pumpAndSettle();
     expect(find.text('Jeszcze nie ma sesji. Zacznij pierwszy trening.'), findsOneWidget);
@@ -45,6 +48,7 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('NEURONEK'), findsOneWidget);
 
+    await t.ensureVisible(find.text('TRENING'));
     await t.tap(find.text('TRENING'));
     await t.pump();
     await t.pump(const Duration(milliseconds: 500));

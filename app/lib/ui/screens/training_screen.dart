@@ -23,7 +23,16 @@ class TrainingScreen extends StatelessWidget {
     required this.onFinish,
     this.history = const [],
     this.protocol = TrainingProtocol.relaks,
+    this.onPause,
+    this.onResume,
+    this.onRate,
   });
+
+  final VoidCallback? onPause;
+  final VoidCallback? onResume;
+
+  /// Ocena poczucia kontroli 1..5 po bloku (w przerwie).
+  final ValueChanged<int>? onRate;
 
   final TrainingProtocol protocol;
   final SessionSnapshot snapshot;
@@ -37,14 +46,17 @@ class TrainingScreen extends StatelessWidget {
     final total = snapshot.phaseDurationS ?? 0;
     final left = (total - snapshot.phaseElapsedS).clamp(0, total).toDouble();
     final fb = snapshot.feedback;
-    final paused = !inBreak && fb != null && !fb.valid;
+    final userPaused = !inBreak && snapshot.paused;
+    final paused = !inBreak && !userPaused && fb != null && !fb.valid;
     final threshold = snapshot.threshold ?? 0.5;
     final inTarget = fb != null && fb.valid && fb.y > threshold;
     final quality = snapshot.signalQuality;
 
     final Mood mood = inBreak
         ? Mood.sleepy
-        : paused
+        : userPaused
+            ? Mood.sleepy
+            : paused
             ? Mood.worried
             : inTarget
                 ? Mood.delighted
@@ -52,7 +64,15 @@ class TrainingScreen extends StatelessWidget {
 
     return ScreenFrame(
       footer: true,
-      bottom: PkAction(label: 'ZAKOŃCZ', onTap: onFinish, primary: false),
+      bottom: PkMenu(rows: [
+        if (!inBreak && onPause != null)
+          PkMenuRow(
+            label: userPaused ? 'WZNÓW' : 'PAUZA',
+            selected: true,
+            onTap: userPaused ? onResume : onPause,
+          ),
+        PkMenuRow(label: 'ZAKOŃCZ', selected: inBreak || onPause == null, onTap: onFinish),
+      ]),
       child: ListView(
         children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -83,7 +103,12 @@ class TrainingScreen extends StatelessWidget {
                 : null,
           ),
           const SizedBox(height: 12),
-          if (paused)
+          if (userPaused)
+            const PkDialog(
+              text: 'WSTRZYMANO\nCzas i wynik stoją. Wznów, gdy będziesz gotowy.',
+              more: false,
+            )
+          else if (paused)
             PkWindow(
               color: Px.warnBg,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -121,8 +146,15 @@ class TrainingScreen extends StatelessWidget {
                 ),
               ]),
             ),
+          if (inBreak && onRate != null) ...[
+            const SizedBox(height: 12),
+            Text('POCZUCIE KONTROLI W BLOKU ${snapshot.blockNo}', style: Px.t(9)),
+            Text('1 brak kontroli, 5 pełna kontrola', style: Px.tiny),
+            const SizedBox(height: 6),
+            PkRating(value: snapshot.controlRating, onChanged: onRate!, label: 'Kontrola'),
+          ],
           const SizedBox(height: 12),
-          if (!inBreak && !paused)
+          if (!inBreak && !paused && !userPaused)
             PkWindow(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
