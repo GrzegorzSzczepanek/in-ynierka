@@ -72,3 +72,17 @@ Uwaga: SDK na macOS to biblioteka C (`libbacore` 4.0.0), bez wrappera Pythona. P
 4. Częstotliwość i jednostka akcelerometru (w tym teście zmienia się tylko ok. 9 % próbek).
 5. Czy 246,3 Hz (235 Hz w krótkim nagraniu) to zegar urządzenia, czy tempo dostarczania BLE: dłuższe nagranie (np. 10 min) i porównanie z zegarem hosta.
 6. Powtórzenie testu rozłączenia (n=1), w tym utrata przez oddalenie, a nie wyłączenie.
+
+## Uzupełnienie z 29.10.2026 (adapter FFI, BA MAXI 012, czepek na głowie)
+
+Źródła: `app/nagrania/*` (poza gitem), narzędzia w `app/tool/`, instrukcje producenta (MAN-MAXI, MAN-ELEC, MAN-CAP).
+
+| Fakt | Wartość | Pewność |
+|---|---|---|
+| BIAS | Domyślnie wyłączony (`Bias: all disabled`). Bez wybranych kanałów bias szum wspólny jest ogromny (rzędu mV). Z `set_channel_bias_feedback` na 2 kanałach odchylenie na kanałach z kontaktem spadło do poziomu EEG w pasmach 4 do 40 Hz | pomiar + dok. MAN-MAXI |
+| Zasięg dryfu | Na kanałach z kontaktem 99,9% mocy leży w 0,5 do 4 Hz (ok. 400 µV rms), 8 do 12 Hz ok. 7 µV rms, 49 do 51 Hz ok. 34 µV rms | pomiar (1 nagranie, 20 s) |
+| Kanały bez elektrody | Stoją przy szynie zasilania (średnia ponad 500 mV, wartości do 562500 µV), odpowiadają dokładnie kanałom bez kontaktu | pomiar |
+| Flaga kontaktu | W pierwszych ok. 0,5 s wszystkie kanały mają kontakt, po 3 do 3,6 s ustala się właściwy zestaw (tu 21 z 32). Przez 90 s dociskania elektrod nie zmieniła się | pomiar |
+| Numeracja złączy | Tabele 2 i 3 w MAN-ELEC: O1 = 11, O2 = 1, Oz = 6, Pz = 9 (numeracja od 0, MAXI druga połowa 16 do 31). REF = Fp1, BIAS = Fp2. Zgodność z indeksami SDK nie potwierdzona pomiarem | dok. (nie potwierdzone) |
+| Efekt Bergera | W nagraniu 60 s (oczy otwarte i zamknięte co 10 s) na 16 kanałach z kontaktem nie wykryto wzrostu alfa przy zamkniętych oczach (stosunek 0,34 do 1,05). Niejednoznaczne: O1 i Oz bez kontaktu | pomiar (nieprzesądzające) |
+| Odczyt czasu | Pierwsza paczka po ok. 0,2 s od STREAM READY, connect ok. 7,4 s | pomiar |
