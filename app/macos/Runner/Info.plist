@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Aplikacja łączy się z czepkiem EEG przez Bluetooth.</string>
 </dict>
 </plist>
