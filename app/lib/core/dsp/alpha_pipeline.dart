@@ -1,10 +1,26 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import '../eeg/stream_item.dart';
 import '../session/training_protocol.dart';
 import 'biquad.dart';
 import 'processing_config.dart';
 import 'welch.dart';
+
+/// Czasy etapow potoku w mikrosekundach (opcjonalne, do trybu badacza).
+class PipelineTimings {
+  final filterUs = <int>[];
+  final qualityUs = <int>[];
+  final welchUs = <int>[];
+  final totalUs = <int>[];
+
+  void clear() {
+    filterUs.clear();
+    qualityUs.clear();
+    welchUs.clear();
+    totalUs.clear();
+  }
+}
 
 enum InvalidReason { gap, saturation, flat, amplitude, jump, muscle }
 
@@ -15,6 +31,7 @@ class WindowResult {
     required this.valid,
     this.reason,
     this.feature,
+    this.peakHz,
   });
 
   final int sampleEnd;
@@ -24,6 +41,9 @@ class WindowResult {
 
   /// x(t): srednia po kanalach z ln((P_alfa + eps) / P0). Tylko dla okien waznych.
   final double? feature;
+
+  /// Czestotliwosc piku widma w 7 do 13 Hz (tylko dla cechy alfa, okna wazne).
+  final double? peakHz;
 }
 
 /// Potok: filtr przyczynowy, okno przesuwne, kontrola jakosci, moc alfa.
@@ -35,7 +55,10 @@ class AlphaPipeline {
     this.saturationUv = 562000.0,
     this.flatRangeUv = 0.5,
     this.kind = FeatureKind.alphaPower,
+    this.timings,
   });
+
+  final PipelineTimings? timings;
 
   final ProcessingConfig config;
   final List<String> trainingChannels;
@@ -107,8 +130,13 @@ class AlphaPipeline {
     _started = true;
   }
 
+  final _sw = Stopwatch();
+  int _filterAcc = 0;
+
   List<WindowResult> _packet(EegPacket p) {
     final out = <WindowResult>[];
+    final t = timings;
+    if (t != null) _sw..reset()..start();
     for (var i = 0; i < p.length; i++) {
       for (var c = 0; c < _idx.length; c++) {
         final r = p.samples[_idx[c]][i];
@@ -123,22 +151,38 @@ class AlphaPipeline {
       _lastSample = p.firstSample + i;
       if (_count >= _windowSamples &&
           (_count - _windowSamples) % config.stepSamples == 0) {
+        if (t != null) _filterAcc += _sw.elapsedMicroseconds;
         out.add(_evaluate());
+        if (t != null) _sw..reset()..start();
       }
     }
+    if (t != null) _filterAcc += _sw.elapsedMicroseconds;
     return out;
   }
 
   WindowResult _evaluate() {
+    final tm = timings;
+    final total = Stopwatch();
+    if (tm != null) total.start();
     final reason = _checkQuality();
+    final qualityUs = tm == null ? 0 : total.elapsedMicroseconds;
     final end = _lastSample + 1;
     final t = end / _fs;
     if (reason != null) {
+      _record(qualityUs, 0, total);
       return WindowResult(sampleEnd: end, tSec: t, valid: false, reason: reason);
     }
+    final welch0 = total.elapsedMicroseconds;
     var sum = 0.0;
+    Float64List? psdSum;
     for (final f in _filt) {
       final psd = _welch.psd(f);
+      if (kind == FeatureKind.alphaPower) {
+        final acc = psdSum ??= Float64List(psd.length);
+        for (var k = 0; k < psd.length; k++) {
+          acc[k] += psd[k];
+        }
+      }
       final alpha = _welch.bandPower(psd, config.alphaLowHz, config.alphaHighHz);
       switch (kind) {
         case FeatureKind.alphaPower:
@@ -149,12 +193,37 @@ class AlphaPipeline {
           sum += log((beta + config.eps) / (alpha + theta + config.eps));
       }
     }
+    _record(qualityUs, total.elapsedMicroseconds - welch0, total);
     return WindowResult(
       sampleEnd: end,
       tSec: t,
       valid: true,
       feature: sum / _filt.length,
+      peakHz: psdSum == null ? null : _peak(psdSum),
     );
+  }
+
+  void _record(int qualityUs, int welchUs, Stopwatch total) {
+    final tm = timings;
+    if (tm == null) return;
+    tm.filterUs.add(_filterAcc);
+    tm.qualityUs.add(qualityUs);
+    tm.welchUs.add(welchUs);
+    tm.totalUs.add(_filterAcc + total.elapsedMicroseconds);
+    _filterAcc = 0;
+  }
+
+  double? _peak(Float64List psd) {
+    var best = -1.0;
+    double? hz;
+    for (var k = 0; k < psd.length; k++) {
+      final f = k * _welch.df;
+      if (f >= 7 && f <= 13 && psd[k] > best) {
+        best = psd[k];
+        hz = f;
+      }
+    }
+    return hz;
   }
 
   InvalidReason? _checkQuality() {

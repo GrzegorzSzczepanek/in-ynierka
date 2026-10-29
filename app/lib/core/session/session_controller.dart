@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import '../dsp/alpha_pipeline.dart';
 import '../dsp/calibration.dart';
@@ -18,6 +19,7 @@ class SessionController {
     required this.sourceFactory,
     this.config = const SessionConfig(),
     this.onItem,
+    this.stored,
     Future<void> Function(Duration)? delay,
   }) : _delay = delay ?? ((d) => Future<void>.delayed(d)) {
     _pipeline = AlphaPipeline(config.processing,
@@ -26,6 +28,9 @@ class SessionController {
 
   final SourceFactory sourceFactory;
   final SessionConfig config;
+
+  /// Kalibracja z poprzedniej sesji; umozliwia [skipCalibration].
+  final StoredCalibration? stored;
 
   /// Kazdy element strumienia, np. do zapisu surowego EEG.
   final void Function(StreamItem)? onItem;
@@ -64,6 +69,23 @@ class SessionController {
   Baseline? _baseline;
   double? _threshold;
 
+  var _closedFeatures = <double>[];
+  var _closedPeaks = <double>[];
+  int _closedRepeats = 0;
+  double? _alphaRatio;
+  double? _alphaPeakHz;
+
+  bool _paused = false;
+  double _pauseStartT = 0;
+  final _controlRatings = <int, int>{};
+  var _trace = <double>[];
+  double _binSum = 0;
+  int _binN = 0;
+  double _ySum = 0;
+  int _yN = 0;
+  int _winTotal = 0;
+  int _winInvalid = 0;
+
   int _blockNo = 0;
   double _blockStart = 0;
   FeedbackMapper? _mapper;
@@ -89,6 +111,69 @@ class SessionController {
 
   /// Ponawia laczenie po [SessionPhase.connectionLost].
   void retry() => _retry?.complete();
+
+  bool get canSkipCalibration =>
+      stored != null &&
+      (_phase == SessionPhase.calibrating ||
+          _phase == SessionPhase.calibratingClosed ||
+          _phase == SessionPhase.calibrationResult);
+
+  /// Pomija kalibracje: baseline i prog z poprzedniej kalibracji.
+  void skipCalibration() {
+    final s = stored;
+    if (s == null || !canSkipCalibration) return;
+    _calibAttempt++;
+    _calibrations.add(CalibrationRecord(
+      _calibAttempt,
+      0,
+      CalibrationResult(
+        accepted: true,
+        validRatio: 1,
+        baseline: s.baseline,
+        thresholdY: s.thresholdY,
+      ),
+      alphaRatio: s.alphaRatio,
+      alphaPeakHz: s.alphaPeakHz,
+      reused: true,
+    ));
+    _baseline = s.baseline;
+    _threshold = s.thresholdY;
+    _alphaRatio = s.alphaRatio;
+    _alphaPeakHz = s.alphaPeakHz;
+    _blockNo = 0;
+    _afterCalibration(_nowT);
+  }
+
+  /// Wstrzymuje trening: czas bloku, wynik i nagrody stoja, strumien plynie dalej.
+  void pause() {
+    if (_phase != SessionPhase.training || _paused) return;
+    _paused = true;
+    _pauseStartT = _nowT;
+    _emit();
+  }
+
+  void resume() {
+    if (!_paused) return;
+    final gap = _nowT - _pauseStartT;
+    _blockStart += gap;
+    _phaseStart += gap;
+    _mapper = FeedbackMapper(config.processing, _baseline!);
+    _detector = RewardDetector(
+      threshold: _threshold!,
+      holdS: config.processing.holdTimeS,
+      stepS: config.stepS,
+    );
+    _feedback = null;
+    _paused = false;
+    _emit();
+  }
+
+  /// Ocena poczucia kontroli 1..5 dla ukonczonego bloku.
+  void rateBlock(int blockNo, int rating) {
+    if (rating < 1 || rating > 5) return;
+    _controlRatings[blockNo] = rating;
+    _emit();
+  }
 
   Future<SessionResult> run() async {
     _setPhase(SessionPhase.connecting);
@@ -129,6 +214,7 @@ class SessionController {
       status: status,
       calibrations: List.unmodifiable(_calibrations),
       blocks: List.unmodifiable(_blocks),
+      controlRatings: Map.of(_controlRatings),
     );
   }
 
@@ -223,6 +309,9 @@ class SessionController {
   void _startCalibration() {
     _calibWindows = [];
     _calibAttempt++;
+    _closedRepeats = 0;
+    _alphaRatio = null;
+    _alphaPeakHz = null;
     _blockNo = 0;
     _setPhase(SessionPhase.calibrating);
   }
@@ -240,8 +329,17 @@ class SessionController {
           valid: w.valid,
           reason: w.reason,
           feature: w.feature,
+          peakHz: w.peakHz,
         ));
         if (t - _phaseStart >= config.calibrationS) _finishCalibration(t);
+      case SessionPhase.calibratingClosed:
+        if (w.valid && w.feature != null) {
+          _closedFeatures.add(w.feature!);
+          if (w.peakHz != null) _closedPeaks.add(w.peakHz!);
+        }
+        if (t - _phaseStart >= config.calibrationClosedS) _finishClosed(t);
+      case SessionPhase.calibrationResult:
+        if (t - _phaseStart >= config.calibrationResultS) _afterCalibration(t);
       case SessionPhase.training:
         _trainingWindow(w, t);
       case SessionPhase.breakBetweenBlocks:
@@ -266,7 +364,44 @@ class SessionController {
     _baseline = result.baseline;
     _threshold = result.thresholdY;
     _blockNo = 0;
-    _startBlock(t);
+    if (config.closedStep) {
+      _startClosed(t);
+    } else {
+      _afterCalibration(t);
+    }
+  }
+
+  void _afterCalibration(double t) {
+    if (config.calibrationOnly) {
+      _done = true;
+    } else {
+      _startBlock(t);
+    }
+  }
+
+  void _startClosed(double t) {
+    _closedFeatures = [];
+    _closedPeaks = [];
+    _setPhase(SessionPhase.calibratingClosed, at: t);
+  }
+
+  void _finishClosed(double t) {
+    double? ratio;
+    double? peak;
+    if (_closedFeatures.isNotEmpty) {
+      ratio = math.exp(median(_closedFeatures) - _baseline!.median);
+      if (_closedPeaks.isNotEmpty) peak = median(_closedPeaks);
+    }
+    _alphaRatio = ratio;
+    _alphaPeakHz = peak;
+    final last = _calibrations.length - 1;
+    _calibrations[last] = _calibrations[last].withAlpha(ratio, peak);
+    if (ratio != null && ratio < config.alphaReactivityMin && _closedRepeats < config.maxClosedRepeats) {
+      _closedRepeats++;
+      _startClosed(t);
+    } else {
+      _setPhase(SessionPhase.calibrationResult, at: t);
+    }
   }
 
   void _startBlock(double t) {
@@ -286,11 +421,33 @@ class SessionController {
     _invalid = [];
     _invStartMs = null;
     _invReason = null;
+    _paused = false;
+    _trace = [];
+    _binSum = 0;
+    _binN = 0;
+    _ySum = 0;
+    _yN = 0;
+    _winTotal = 0;
+    _winInvalid = 0;
     _setPhase(SessionPhase.training, at: t);
   }
 
   void _trainingWindow(WindowResult w, double t) {
+    if (_paused) return;
     final s = _feedback = _mapper!.push(w);
+    _winTotal++;
+    if (!w.valid) _winInvalid++;
+    if (w.valid) {
+      _ySum += s.y;
+      _yN++;
+      _binSum += s.y;
+      _binN++;
+    }
+    while (t - _blockStart >= (_trace.length + 1) * 30) {
+      _trace.add(_binN > 0 ? _binSum / _binN : 0.5);
+      _binSum = 0;
+      _binN = 0;
+    }
     final ms = ((t - _blockStart) * 1000).round();
     if (w.valid) {
       _closeInvalid(ms);
@@ -329,6 +486,10 @@ class SessionController {
       rewardCount: _rewards,
       events: _events,
       invalid: _invalid,
+      meanY: _yN > 0 ? _ySum / _yN : 0.5,
+      yTrace: [..._trace, if (_binN > 0) _binSum / _binN],
+      windowsTotal: _winTotal,
+      windowsInvalid: _winInvalid,
     ));
     if (_blockNo >= config.blocks) {
       _done = true;
@@ -348,13 +509,15 @@ class SessionController {
     if (_snapshots.isClosed) return;
     final duration = switch (_phase) {
       SessionPhase.calibrating => config.calibrationS,
+      SessionPhase.calibratingClosed => config.calibrationClosedS,
+      SessionPhase.calibrationResult => config.calibrationResultS,
       SessionPhase.training => config.blockS,
       SessionPhase.breakBetweenBlocks => config.breakS,
       _ => null,
     };
     _last = SessionSnapshot(
       phase: _phase,
-      phaseElapsedS: (_nowT - _phaseStart).clamp(0, double.infinity),
+      phaseElapsedS: ((_paused ? _pauseStartT : _nowT) - _phaseStart).clamp(0, double.infinity),
       phaseDurationS: duration,
       blockNo: _blockNo,
       blocksTotal: config.blocks,
@@ -376,6 +539,11 @@ class SessionController {
       signalQuality: _recentValid.isEmpty
           ? null
           : _recentValid.where((v) => v).length / _recentValid.length,
+      paused: _paused,
+      alphaRatio: _alphaRatio,
+      alphaPeakHz: _alphaPeakHz,
+      canSkipCalibration: canSkipCalibration,
+      controlRating: _controlRatings[_blockNo],
     );
     _snapshots.add(_last!);
   }

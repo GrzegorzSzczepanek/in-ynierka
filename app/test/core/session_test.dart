@@ -14,6 +14,7 @@ const cfg = SessionConfig(
   breakS: 4,
   contactSettleS: 1,
   contactStableS: 1,
+  calibrationClosedS: 0,
   reconnectIntervalS: 15,
 );
 

@@ -1,5 +1,6 @@
 import 'package:sqlite3/sqlite3.dart';
 
+import '../dsp/calibration.dart';
 import '../dsp/processing_config.dart';
 import '../eeg/stream_item.dart';
 import '../session/session_models.dart';
@@ -32,6 +33,20 @@ class SessionRow {
   final int blocksTotal;
 }
 
+class ExportableSession {
+  const ExportableSession({
+    required this.id,
+    required this.createdAt,
+    required this.status,
+    required this.protocol,
+  });
+
+  final int id;
+  final DateTime createdAt;
+  final String status;
+  final TrainingProtocol protocol;
+}
+
 class DailyStat {
   const DailyStat(this.date, this.validMinutes, this.blocksTotal, this.sessions);
 
@@ -49,6 +64,9 @@ class SessionRepository {
   final DateTime Function() _now;
 
   Database get _db => database.db;
+
+  /// Dostep do bazy dla eksportu i narzedzi badacza.
+  Database get db => database.db;
 
   int ensureProtocol(ProcessingConfig c, {String name = 'Trening alfa'}) {
     final configId = _ensureConfig(c);
@@ -178,12 +196,14 @@ class SessionRepository {
         final r = c.result;
         _db.execute(
             'INSERT INTO calibrations (session_id, attempt_no, duration_s, valid_signal_s, '
-            'baseline_median, baseline_mad, threshold_y, failure_reason, succeeded) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'baseline_median, baseline_mad, threshold_y, failure_reason, succeeded, '
+            'alpha_ratio, alpha_peak_hz) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               sessionId, c.attempt, c.durationS.round(), c.validSignalS.round(),
               r.baseline?.median, r.baseline?.scale, r.thresholdY,
-              c.failureReason, r.accepted ? 1 : 0,
+              c.reused ? 'reused' : c.failureReason, r.accepted ? 1 : 0,
+              c.alphaRatio, c.alphaPeakHz,
             ]);
         calibrationIds[c.attempt] = _db.lastInsertRowId;
       }
@@ -191,11 +211,12 @@ class SessionRepository {
         _db.execute(
             'INSERT INTO blocks (session_id, calibration_id, block_no, planned_duration_s, '
             'actual_duration_s, threshold_used, valid_signal_s, time_above_threshold_s, '
-            'reward_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'reward_count, control_rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               sessionId, calibrationIds[b.calibrationAttempt], b.blockNo,
               b.plannedS.round(), b.actualS.round(), b.threshold,
               b.validSignalS.round(), b.timeAboveThresholdS, b.rewardCount,
+              result.controlRatings[b.blockNo],
             ]);
         final blockId = _db.lastInsertRowId;
         for (final e in b.events) {
@@ -235,6 +256,88 @@ class SessionRepository {
     final v = _db.select(
         'SELECT SUM(valid_signal_s) AS s FROM blocks WHERE session_id = ?', [sessionId]).first['s'];
     return v == null ? 0 : (v as num) / 60;
+  }
+
+  void setMood(int sessionId, int rating) {
+    if (rating < 1 || rating > 5) throw ArgumentError('Ocena 1..5');
+    _db.execute('UPDATE sessions SET mood_after = ? WHERE id = ?', [rating, sessionId]);
+  }
+
+  /// Ostatnia udana kalibracja danego treningu (do pominiecia kalibracji).
+  StoredCalibration? lastCalibration(TrainingProtocol protocol) {
+    final r = _db.select(
+        'SELECT c.baseline_median, c.baseline_mad, c.threshold_y, c.alpha_ratio, '
+        'c.alpha_peak_hz, s.created_at FROM calibrations c '
+        'JOIN sessions s ON s.id = c.session_id JOIN protocols p ON p.id = s.protocol_id '
+        'WHERE p.name = ? AND c.succeeded = 1 AND c.baseline_median IS NOT NULL '
+        'ORDER BY c.id DESC LIMIT 1',
+        [protocol.dbName]);
+    if (r.isEmpty) return null;
+    final row = r.first;
+    return StoredCalibration(
+      baseline: Baseline((row['baseline_median'] as num).toDouble(),
+          (row['baseline_mad'] as num).toDouble()),
+      thresholdY: (row['threshold_y'] as num).toDouble(),
+      alphaRatio: (row['alpha_ratio'] as num?)?.toDouble(),
+      alphaPeakHz: (row['alpha_peak_hz'] as num?)?.toDouble(),
+      createdAt: DateTime.parse(row['created_at'] as String),
+    );
+  }
+
+  /// Ostatnie sesje (najnowsze pierwsze) do eksportu: id, data, status, trening.
+  List<ExportableSession> exportableSessions({int limit = 6}) => [
+        for (final r in _db.select(
+            'SELECT s.id, s.created_at, s.status, p.name AS protocol FROM sessions s '
+            'JOIN protocols p ON p.id = s.protocol_id ORDER BY s.id DESC LIMIT ?',
+            [limit]))
+          ExportableSession(
+            id: r['id'] as int,
+            createdAt: DateTime.parse(r['created_at'] as String),
+            status: r['status'] as String,
+            protocol: TrainingProtocol.byDbName(r['protocol'] as String),
+          ),
+      ];
+
+  /// Srednia ocen samopoczucia z ostatnich [n] sesji (1..5) lub null.
+  double? recentMoodAverage({int n = 5}) {
+    final r = _db.select(
+        'SELECT AVG(mood_after) AS m FROM (SELECT mood_after FROM sessions '
+        'WHERE mood_after IS NOT NULL ORDER BY id DESC LIMIT ?)',
+        [n]).first['m'];
+    return (r as num?)?.toDouble();
+  }
+
+  /// Udzial czasu w celu w ostatniej sesji z blokami (0..1) lub null.
+  double? lastSessionTargetShare() {
+    final r = _db.select(
+        'SELECT SUM(time_above_threshold_s) AS a, SUM(valid_signal_s) AS v FROM blocks '
+        'WHERE session_id = (SELECT MAX(session_id) FROM blocks)').first;
+    final v = (r['v'] as num?)?.toDouble() ?? 0;
+    return v > 0 ? ((r['a'] as num).toDouble() / v).clamp(0.0, 1.0) : null;
+  }
+
+  /// Poprawne minuty treningu od [since] (UTC).
+  double validMinutesSince(DateTime since) {
+    final r = _db.select(
+        'SELECT SUM(b.valid_signal_s) AS s FROM blocks b JOIN sessions s ON s.id = b.session_id '
+        'WHERE s.created_at >= ?',
+        [since.toUtc().toIso8601String()]).first['s'];
+    return r == null ? 0 : (r as num) / 60;
+  }
+
+  /// Liczba kolejnych dni (do dzis lub wczoraj) z co najmniej jedna sesja z postepem.
+  int streakDays(DateTime now) {
+    final days = {for (final d in dailyStats()) d.date};
+    String key(DateTime d) =>
+        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    var day = DateTime(now.year, now.month, now.day);
+    if (!days.contains(key(day))) day = day.subtract(const Duration(days: 1));
+    var n = 0;
+    while (days.contains(key(day))) {
+      n++;
+      day = day.subtract(const Duration(days: 1));
+    }
+    return n;
   }
 
   double totalValidMinutes() {
@@ -318,6 +421,11 @@ class SessionRepository {
       connectAttempts: base.connectAttempts,
       reconnectAttempts: base.reconnectAttempts,
       reconnectIntervalS: base.reconnectIntervalS,
+      calibrationClosedS: base.calibrationClosedS,
+      calibrationResultS: base.calibrationResultS,
+      alphaReactivityMin: base.alphaReactivityMin,
+      maxClosedRepeats: base.maxClosedRepeats,
+      calibrationOnly: base.calibrationOnly,
     );
   }
 }

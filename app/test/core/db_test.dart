@@ -17,6 +17,7 @@ const cfg = SessionConfig(
   breakS: 4,
   contactSettleS: 1,
   contactStableS: 1,
+  calibrationClosedS: 0,
 );
 
 MockSource mock({int? disconnectAfter, Set<int> drop = const {}}) => MockSource(
@@ -64,7 +65,7 @@ void main() {
   tearDown(() => database.close());
 
   test('schemat, slowniki i wersja', () {
-    expect(q('PRAGMA user_version').first.values.first, 1);
+    expect(q('PRAGMA user_version').first.values.first, 2);
     expect(q('PRAGMA foreign_keys').first.values.first, 1);
     expect(q('SELECT COUNT(*) c FROM avatar_stages').first['c'], 6);
     expect(q('SELECT COUNT(*) c FROM invalid_reasons').first['c'], 6);

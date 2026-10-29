@@ -11,6 +11,9 @@ class AppDatabase {
 
   factory AppDatabase.inMemory() => _init(sqlite3.openInMemory());
 
+  /// Otwiera istniejaca baze (migracje i klucze obce jak zwykle).
+  factory AppDatabase.wrap(Database db) => _init(db);
+
   static AppDatabase _init(Database db) {
     db.execute('PRAGMA foreign_keys = ON');
     final version = db.select('PRAGMA user_version').first.values.first as int;
@@ -28,6 +31,18 @@ class AppDatabase {
       } catch (_) {
         db.execute('ROLLBACK');
         rethrow;
+      }
+    } else {
+      for (var v = version + 1; v <= schemaVersion; v++) {
+        db.execute('BEGIN');
+        try {
+          db.execute(migrationSql[v]!);
+          db.execute('PRAGMA user_version = $v');
+          db.execute('COMMIT');
+        } catch (_) {
+          db.execute('ROLLBACK');
+          rethrow;
+        }
       }
     }
     return AppDatabase._(db);

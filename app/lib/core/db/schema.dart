@@ -1,5 +1,5 @@
 /// Schemat wersja 5 (docs/diagrams/schema_v5.dbml) wraz z ograniczeniami CHECK.
-const schemaVersion = 1;
+const schemaVersion = 2;
 
 const schemaSql = '''
 CREATE TABLE processing_configs (
@@ -97,6 +97,7 @@ CREATE TABLE sessions (
     CHECK (status IN ('in_progress', 'completed', 'interrupted', 'connection_lost')),
   app_version TEXT NOT NULL,
   firmware TEXT,
+  mood_after INTEGER CHECK (mood_after IS NULL OR mood_after BETWEEN 1 AND 5),
   CHECK ((source_type = 'device') = (device_id IS NOT NULL))
 );
 
@@ -140,6 +141,8 @@ CREATE TABLE calibrations (
   baseline_mad REAL,
   threshold_y REAL,
   failure_reason TEXT,
+  alpha_ratio REAL,
+  alpha_peak_hz REAL,
   succeeded INTEGER NOT NULL DEFAULT 0 CHECK (succeeded IN (0, 1)),
   UNIQUE (session_id, attempt_no)
 );
@@ -155,6 +158,7 @@ CREATE TABLE blocks (
   valid_signal_s INTEGER NOT NULL DEFAULT 0,
   time_above_threshold_s REAL NOT NULL DEFAULT 0,
   reward_count INTEGER NOT NULL DEFAULT 0,
+  control_rating INTEGER CHECK (control_rating IS NULL OR control_rating BETWEEN 1 AND 5),
   UNIQUE (session_id, block_no)
 );
 
@@ -199,6 +203,18 @@ SELECT session_date,
 FROM session_stats
 GROUP BY session_date;
 ''';
+
+/// Migracje: klucz to wersja docelowa.
+const migrationSql = {
+  2: '''
+ALTER TABLE sessions ADD COLUMN mood_after INTEGER
+  CHECK (mood_after IS NULL OR mood_after BETWEEN 1 AND 5);
+ALTER TABLE calibrations ADD COLUMN alpha_ratio REAL;
+ALTER TABLE calibrations ADD COLUMN alpha_peak_hz REAL;
+ALTER TABLE blocks ADD COLUMN control_rating INTEGER
+  CHECK (control_rating IS NULL OR control_rating BETWEEN 1 AND 5);
+''',
+};
 
 /// Dane slownikowe i ustawienia domyslne.
 const seedSql = '''

@@ -8,6 +8,8 @@ enum SessionPhase {
   deviceSelection,
   contactCheck,
   calibrating,
+  calibratingClosed,
+  calibrationResult,
   training,
   breakBetweenBlocks,
   reconnecting,
@@ -34,6 +36,11 @@ class SessionConfig {
     this.connectAttempts = 3,
     this.reconnectAttempts = 3,
     this.reconnectIntervalS = 15,
+    this.calibrationClosedS = 30,
+    this.calibrationResultS = 4,
+    this.alphaReactivityMin = 1.2,
+    this.maxClosedRepeats = 2,
+    this.calibrationOnly = false,
   }) : _channels = trainingChannels;
 
   final ProcessingConfig processing;
@@ -56,6 +63,20 @@ class SessionConfig {
   final int connectAttempts;
   final int reconnectAttempts;
   final double reconnectIntervalS;
+
+  /// Krok oczy zamkniete (reaktywnosc alfa), tylko dla treningu alfa.
+  final double calibrationClosedS;
+  final double calibrationResultS;
+
+  /// Stosunek mocy alfa oczy zamkniete / otwarte, ponizej ktorego krok sie powtarza.
+  final double alphaReactivityMin;
+  final int maxClosedRepeats;
+
+  /// Sesja konczy sie po kalibracji, bez blokow treningowych.
+  final bool calibrationOnly;
+
+  bool get closedStep =>
+      protocol.kind == FeatureKind.alphaPower && calibrationClosedS > 0;
 
   double get stepS => processing.stepSamples / 250;
 
@@ -85,12 +106,30 @@ class CalibrationRecord {
     this.durationS,
     this.result, {
     this.validSignalS = 0,
+    this.alphaRatio,
+    this.alphaPeakHz,
+    this.reused = false,
   });
+
+  CalibrationRecord withAlpha(double? ratio, double? peakHz) => CalibrationRecord(
+        attempt,
+        durationS,
+        result,
+        validSignalS: validSignalS,
+        alphaRatio: ratio,
+        alphaPeakHz: peakHz,
+        reused: reused,
+      );
 
   final int attempt;
   final double durationS;
   final CalibrationResult result;
   final double validSignalS;
+  final double? alphaRatio;
+  final double? alphaPeakHz;
+
+  /// Baseline i prog wziete z poprzedniej kalibracji (pominieto kalibracje).
+  final bool reused;
 
   String? get failureReason => result.accepted
       ? null
@@ -111,7 +150,19 @@ class BlockResult {
     required this.rewardCount,
     required this.events,
     required this.invalid,
+    this.meanY = 0.5,
+    this.yTrace = const [],
+    this.windowsTotal = 0,
+    this.windowsInvalid = 0,
   });
+
+  /// Srednia wygladzonego wyniku z waznych okien.
+  final double meanY;
+
+  /// Srednia wyniku w kolejnych 30 s bloku (tylko w pamieci, nie w bazie).
+  final List<double> yTrace;
+  final int windowsTotal;
+  final int windowsInvalid;
 
   final int blockNo;
 
@@ -125,6 +176,23 @@ class BlockResult {
   final int rewardCount;
   final List<BlockEvent> events;
   final List<InvalidInterval> invalid;
+}
+
+/// Kalibracja z poprzedniej sesji, do ponownego uzycia (pominiecie kalibracji).
+class StoredCalibration {
+  const StoredCalibration({
+    required this.baseline,
+    required this.thresholdY,
+    this.alphaRatio,
+    this.alphaPeakHz,
+    this.createdAt,
+  });
+
+  final Baseline baseline;
+  final double thresholdY;
+  final double? alphaRatio;
+  final double? alphaPeakHz;
+  final DateTime? createdAt;
 }
 
 class ChannelContact {
@@ -149,6 +217,11 @@ class SessionSnapshot {
     this.lastInvalid,
     this.contact,
     this.signalQuality,
+    this.paused = false,
+    this.alphaRatio,
+    this.alphaPeakHz,
+    this.canSkipCalibration = false,
+    this.controlRating,
   });
 
   final SessionPhase phase;
@@ -172,6 +245,13 @@ class SessionSnapshot {
 
   /// Udzial waznych okien w ostatnich ok. 5 s (0..1), po pierwszych oknach.
   final double? signalQuality;
+  final bool paused;
+  final double? alphaRatio;
+  final double? alphaPeakHz;
+  final bool canSkipCalibration;
+
+  /// Ocena poczucia kontroli (1..5) ostatniego bloku, jesli podana.
+  final int? controlRating;
 }
 
 class SessionResult {
@@ -179,7 +259,11 @@ class SessionResult {
     required this.status,
     required this.calibrations,
     required this.blocks,
+    this.controlRatings = const {},
   });
+
+  /// Numer bloku -> ocena poczucia kontroli 1..5.
+  final Map<int, int> controlRatings;
 
   final SessionStatus status;
   final List<CalibrationRecord> calibrations;
