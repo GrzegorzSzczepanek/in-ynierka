@@ -81,7 +81,7 @@ void main() {
       }
       return null;
     });
-    messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, __) {}));
+    messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, _) {}));
 
     final src = BrainAccessAndroidSource(
       deviceName: 'BA MAXI 012',

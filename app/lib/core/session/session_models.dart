@@ -28,6 +28,7 @@ class SessionConfig {
     this.protocol = TrainingProtocol.relaks,
     List<String>? trainingChannels,
     this.calibrationS = 60,
+    this.calibrationMaxS = 150,
     this.blocks = 3,
     this.blockS = 180,
     this.breakS = 30,
@@ -53,6 +54,9 @@ class SessionConfig {
   /// Jawnie ustawione kanaly (null: kanaly protokolu).
   List<String>? get channelsOverride => _channels;
   final double calibrationS;
+
+  /// Po tym czasie krok kalibracji konczy sie, nawet bez dosc wiarygodnego sygnalu.
+  final double calibrationMaxS;
   final int blocks;
   final double blockS;
   final double breakS;

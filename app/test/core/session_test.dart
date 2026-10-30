@@ -112,10 +112,33 @@ void main() {
     expect(first.actualS, closeTo(10, 0.5));
   });
 
-  test('nieudana kalibracja jest powtarzana', () async {
+  test('krotki zly sygnal w kalibracji nie wymusza powtorki, kalibracja sie wydluza', () async {
     final c = SessionController(
-      sourceFactory: () => mock(amp: (t) => t < 25 ? 150 : 20),
+      sourceFactory: () => mock(amp: (t) => t < 12 ? 150 : 20),
       config: cfg,
+      delay: instant,
+    );
+    final (r, _) = await run(c);
+    expect(r.calibrations.length, 1);
+    expect(r.calibrations.single.result.accepted, isTrue);
+    expect(r.status, SessionStatus.completed);
+  });
+
+  test('stale zly sygnal: kalibracja po limicie czasu jest odrzucona i powtarzana', () async {
+    const limited = SessionConfig(
+      calibrationS: 20,
+      calibrationMaxS: 30,
+      blocks: 3,
+      blockS: 10,
+      breakS: 4,
+      contactSettleS: 1,
+      contactStableS: 1,
+      calibrationClosedS: 0,
+      reconnectIntervalS: 15,
+    );
+    final c = SessionController(
+      sourceFactory: () => mock(amp: (t) => t < 40 ? 150 : 20),
+      config: limited,
       delay: instant,
     );
     final (r, _) = await run(c);

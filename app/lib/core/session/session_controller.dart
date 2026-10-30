@@ -331,7 +331,11 @@ class SessionController {
           feature: w.feature,
           peakHz: w.peakHz,
         ));
-        if (t - _phaseStart >= config.calibrationS) _finishCalibration(t);
+        final elapsed = t - _phaseStart;
+        final enough = _calibValidS >= _calibNeededS;
+        if ((elapsed >= config.calibrationS && enough) || elapsed >= config.calibrationMaxS) {
+          _finishCalibration(t);
+        }
       case SessionPhase.calibratingClosed:
         if (w.valid && w.feature != null) {
           _closedFeatures.add(w.feature!);
@@ -349,8 +353,23 @@ class SessionController {
     }
   }
 
+  /// Wymagany czas wiarygodnego sygnalu: ulamek czasu kroku po odjeciu rozgrzewki.
+  double get _calibNeededS {
+    final cfg = config.processing;
+    return cfg.calibMinValidRatio * (config.calibrationS - cfg.windowS - cfg.warmupSkipS);
+  }
+
+  /// Czas wiarygodnego sygnalu zebrany w kroku kalibracji (bez rozgrzewki).
+  double get _calibValidS {
+    final cfg = config.processing;
+    final n = _calibWindows.where((w) => w.valid && w.tSec - cfg.windowS >= cfg.warmupSkipS).length;
+    return n * config.stepS;
+  }
+
   void _finishCalibration(double t) {
-    final result = calibrate(_calibWindows, config.processing);
+    final enough = _calibValidS >= _calibNeededS;
+    final windows = enough ? [for (final w in _calibWindows) if (w.valid) w] : _calibWindows;
+    final result = calibrate(windows, config.processing);
     _calibrations.add(CalibrationRecord(
       _calibAttempt,
       config.calibrationS,
@@ -505,6 +524,15 @@ class SessionController {
     _emit();
   }
 
+  /// Postep kroku; w kalibracji liczy sie tylko wiarygodny sygnal, wiec
+  /// pasek zwalnia, gdy sygnal jest zly.
+  double get _phaseProgressS {
+    final elapsed = ((_paused ? _pauseStartT : _nowT) - _phaseStart).clamp(0, double.infinity).toDouble();
+    if (_phase != SessionPhase.calibrating) return elapsed;
+    final scaled = _calibValidS / _calibNeededS * config.calibrationS;
+    return elapsed < scaled ? elapsed : scaled;
+  }
+
   void _emit() {
     if (_snapshots.isClosed) return;
     final duration = switch (_phase) {
@@ -517,7 +545,7 @@ class SessionController {
     };
     _last = SessionSnapshot(
       phase: _phase,
-      phaseElapsedS: ((_paused ? _pauseStartT : _nowT) - _phaseStart).clamp(0, double.infinity),
+      phaseElapsedS: _phaseProgressS,
       phaseDurationS: duration,
       blockNo: _blockNo,
       blocksTotal: config.blocks,
