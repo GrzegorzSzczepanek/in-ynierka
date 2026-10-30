@@ -46,6 +46,14 @@ Całą konfigurację czepka robi się w aplikacji, na ekranie Ustawienia (ikona 
 Zdejmij kwarantannę z SDK w `vendor/` (Gatekeeper). Okno desktopowe jest responsywne; układ telefonu poniżej ok. 900 dp.
 `libbacore.dylib` jest dołączana do pakietu aplikacji przy każdym buildzie (faza „Embed libbacore” z `vendor/`), więc gotowy `.app` (`flutter build macos --release`, wynik w `app/build/macos/Build/Products/Release/`) działa samodzielnie, także w piaskownicy. Przy pierwszym połączeniu macOS zapyta o zgodę na Bluetooth.
 
+## Android
+
+```
+cd app && flutter run -d <telefon>
+```
+
+Czepek obsługuje SDK Kotlin (BrainAccessKit 2.2.0) przez most `BrainAccessBridge.kt` i kanał platformy. Gradle sam rozpakowuje bibliotekę z `archive/BrainAccessKit-2.2.0.zip` do `vendor/android/libs` (poza gitem). Konfiguracja jest w tym samym ekranie Ustawienia: „Szukaj czepka” prosi o zgodę na Bluetooth i skanuje, reszta jak na macOS. Na Androidzie nie ma pola ścieżki biblioteki.
+
 ## Testy
 
 ```

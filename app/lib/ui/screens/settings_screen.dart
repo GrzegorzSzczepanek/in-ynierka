@@ -14,9 +14,16 @@ typedef ScanFn = Future<List<String>> Function(String libPath);
 /// Ustawienia: zrodlo sygnalu, czepek, nazwy kanalow i kanaly treningowe.
 /// Zmiany zapisuja sie od razu w bazie.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, this.scan = BrainAccessScanner.scan});
+  const SettingsScreen({
+    super.key,
+    this.scan = platformScan,
+    this.needsLibrary,
+  });
 
   final ScanFn scan;
+
+  /// Czy trzeba lokalnej biblioteki SDK (macOS); na Androidzie SDK jest w aplikacji.
+  final bool? needsLibrary;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -47,15 +54,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  bool get _needsLib => widget.needsLibrary ?? platformNeedsLibrary;
+
   void _save() {
     _s.save(ServicesScope.of(context).repository);
     setState(() {});
   }
 
   Future<void> _scan() async {
-    final lib = findBacoreLib(override: _s.libPath);
+    final lib = _needsLib ? findBacoreLib(override: _s.libPath) : '';
     if (lib == null) {
-      setState(() => _scanError = 'Nie znaleziono biblioteki libbacore. Wpisz jej ścieżkę poniżej.');
+      setState(
+        () => _scanError =
+            'Nie znaleziono biblioteki libbacore. Wpisz jej ścieżkę poniżej.',
+      );
       return;
     }
     setState(() {
@@ -78,7 +90,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() {
         _scanning = false;
-        _scanError = 'Skan nie powiódł się: $e. Sprawdź Bluetooth i uprawnienia aplikacji.';
+        _scanError =
+            'Skan nie powiódł się: $e. Sprawdź Bluetooth i uprawnienia aplikacji.';
       });
     }
   }
@@ -107,129 +120,180 @@ class _SettingsScreenState extends State<SettingsScreen> {
       footer: true,
       child: ListView(
         children: [
-          Row(children: [
-            PkBack(onPressed: () => Navigator.of(context).pop()),
-            const SizedBox(width: 12),
-            Text('USTAWIENIA', style: Px.t(20, height: 1.3, shadow: true)),
-          ]),
+          Row(
+            children: [
+              PkBack(onPressed: () => Navigator.of(context).pop()),
+              const SizedBox(width: 12),
+              Text('USTAWIENIA', style: Px.t(20, height: 1.3, shadow: true)),
+            ],
+          ),
           const SizedBox(height: 14),
           Text('ŹRÓDŁO SYGNAŁU', style: Px.t(10)),
           const SizedBox(height: 6),
-          PkMenu(rows: [
-            PkMenuRow(
-              label: 'DEMO',
-              sub: 'sygnał symulowany, bez czepka',
-              selected: !device,
-              onTap: () {
-                _s.source = SourceKind.demo;
-                _save();
-              },
-            ),
-            PkMenuRow(
-              label: 'CZEPEK BRAINACCESS',
-              sub: 'prawdziwy sygnał przez Bluetooth',
-              selected: device,
-              onTap: () {
-                _s.source = SourceKind.device;
-                _save();
-              },
-            ),
-          ]),
+          PkMenu(
+            rows: [
+              PkMenuRow(
+                label: 'DEMO',
+                sub: 'sygnał symulowany, bez czepka',
+                selected: !device,
+                onTap: () {
+                  _s.source = SourceKind.demo;
+                  _save();
+                },
+              ),
+              PkMenuRow(
+                label: 'CZEPEK BRAINACCESS',
+                sub: 'prawdziwy sygnał przez Bluetooth',
+                selected: device,
+                onTap: () {
+                  _s.source = SourceKind.device;
+                  _save();
+                },
+              ),
+            ],
+          ),
           if (device) ...[
             const SizedBox(height: 14),
             Text('CZEPEK', style: Px.t(10)),
             const SizedBox(height: 6),
-            PkLeader('Wybrany', _s.deviceName.isEmpty ? 'brak' : _s.deviceName, bold: true),
-            PkLeader('Biblioteka SDK', lib == null ? 'nie znaleziono' : 'znaleziona'),
-            if (lib != null) Text(lib, style: Px.tiny),
+            PkLeader(
+              'Wybrany',
+              _s.deviceName.isEmpty ? 'brak' : _s.deviceName,
+              bold: true,
+            ),
+            if (_needsLib) ...[
+              PkLeader(
+                'Biblioteka SDK',
+                lib == null ? 'nie znaleziono' : 'znaleziona',
+              ),
+              if (lib != null) Text(lib, style: Px.tiny),
+            ],
             const SizedBox(height: 8),
             PkAction(
               label: _scanning ? 'SZUKAM CZEPKA…' : 'SZUKAJ CZEPKA',
               onTap: _scanning ? null : _scan,
               primary: _s.deviceName.isEmpty,
             ),
-            if (_scanning) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Skan trwa ok. 5 s. Włącz czepek i trzymaj go blisko.', style: Px.tiny)),
+            if (_scanning)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  'Skan trwa ok. 5 s. Włącz czepek i trzymaj go blisko.',
+                  style: Px.tiny,
+                ),
+              ),
             if (_found != null) ...[
               const SizedBox(height: 8),
               if (_found!.isEmpty)
-                Text('Nie znaleziono czepka. Włącz go i spróbuj jeszcze raz.', style: Px.small)
+                Text(
+                  'Nie znaleziono czepka. Włącz go i spróbuj jeszcze raz.',
+                  style: Px.small,
+                )
               else
-                PkMenu(rows: [
-                  for (final n in _found!)
-                    PkMenuRow(
-                      label: n,
-                      selected: n == _s.deviceName,
-                      onTap: () {
-                        _s.deviceName = n;
-                        _save();
-                      },
-                    ),
-                ]),
+                PkMenu(
+                  rows: [
+                    for (final n in _found!)
+                      PkMenuRow(
+                        label: n,
+                        selected: n == _s.deviceName,
+                        onTap: () {
+                          _s.deviceName = n;
+                          _save();
+                        },
+                      ),
+                  ],
+                ),
             ],
-            if (_scanError != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(_scanError!, style: Px.t(8, color: Px.danger))),
-            const SizedBox(height: 8),
-            Text('Ścieżka libbacore (puste: szukam automatycznie)', style: Px.tiny),
-            const SizedBox(height: 4),
-            TextField(
-              controller: _lib,
-              style: Px.t(9, height: 1.4),
-              decoration: const InputDecoration(
-                isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-                filled: true,
-                fillColor: Px.panel,
+            if (_scanError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(_scanError!, style: Px.t(8, color: Px.danger)),
               ),
-              onChanged: (v) {
-                _s.libPath = v.trim();
-                _s.save(ServicesScope.of(context).repository);
-              },
-              onSubmitted: (_) => setState(() {}),
-            ),
+            if (_needsLib) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Ścieżka libbacore (puste: szukam automatycznie)',
+                style: Px.tiny,
+              ),
+              const SizedBox(height: 4),
+              TextField(
+                controller: _lib,
+                style: Px.t(9, height: 1.4),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                  filled: true,
+                  fillColor: Px.panel,
+                ),
+                onChanged: (v) {
+                  _s.libPath = v.trim();
+                  _s.save(ServicesScope.of(context).repository);
+                },
+                onSubmitted: (_) => setState(() {}),
+              ),
+            ],
             const SizedBox(height: 14),
             Text('NAZWY KANAŁÓW', style: Px.t(10)),
             const SizedBox(height: 6),
-            PkMenu(rows: [
-              PkMenuRow(
-                label: 'WG TABELI PRODUCENTA',
-                sub: 'O1, O2, Pz... (MAXI, niepotwierdzone pomiarem)',
-                selected: _s.naming == ChannelNaming.manufacturer,
-                onTap: () {
-                  _s.naming = ChannelNaming.manufacturer;
-                  _s.training.clear();
-                  _save();
-                },
-              ),
-              PkMenuRow(
-                label: 'NUMERY',
-                sub: 'ch1 ... ch32, bez mapy głowy',
-                selected: _s.naming == ChannelNaming.numbered,
-                onTap: () {
-                  _s.naming = ChannelNaming.numbered;
-                  _s.training.clear();
-                  _save();
-                },
-              ),
-            ]),
+            PkMenu(
+              rows: [
+                PkMenuRow(
+                  label: 'WG TABELI PRODUCENTA',
+                  sub: 'O1, O2, Pz... (MAXI, niepotwierdzone pomiarem)',
+                  selected: _s.naming == ChannelNaming.manufacturer,
+                  onTap: () {
+                    _s.naming = ChannelNaming.manufacturer;
+                    _s.training.clear();
+                    _save();
+                  },
+                ),
+                PkMenuRow(
+                  label: 'NUMERY',
+                  sub: 'ch1 ... ch32, bez mapy głowy',
+                  selected: _s.naming == ChannelNaming.numbered,
+                  onTap: () {
+                    _s.naming = ChannelNaming.numbered;
+                    _s.training.clear();
+                    _save();
+                  },
+                ),
+              ],
+            ),
           ],
           const SizedBox(height: 14),
           Text('KANAŁY TRENINGOWE', style: Px.t(10)),
-          Text('Wybierz kanały z kontaktem. Puste = domyślne protokołu.', style: Px.tiny),
+          Text(
+            'Wybierz kanały z kontaktem. Puste = domyślne protokołu.',
+            style: Px.tiny,
+          ),
           for (final p in TrainingProtocol.all) ...[
             const SizedBox(height: 8),
-            Text('${p.title.toUpperCase()}: ${_s.trainingChannelsFor(p).join(' ')}', style: Px.t(9)),
+            Text(
+              '${p.title.toUpperCase()}: ${_s.trainingChannelsFor(p).join(' ')}',
+              style: Px.t(9),
+            ),
             const SizedBox(height: 6),
-            Wrap(spacing: 5, runSpacing: 5, children: [
-              for (final n in names)
-                _Chip(
-                  label: device && _s.effectiveNaming == ChannelNaming.numbered ? n.replaceFirst('ch', '') : n,
-                  on: _s.trainingChannelsFor(p).contains(n),
-                  onTap: () => _toggle(p, n),
-                ),
-            ]),
+            Wrap(
+              spacing: 5,
+              runSpacing: 5,
+              children: [
+                for (final n in names)
+                  _Chip(
+                    label:
+                        device && _s.effectiveNaming == ChannelNaming.numbered
+                        ? n.replaceFirst('ch', '')
+                        : n,
+                    on: _s.trainingChannelsFor(p).contains(n),
+                    onTap: () => _toggle(p, n),
+                  ),
+              ],
+            ),
           ],
           const SizedBox(height: 10),
-          Text('Zmiany zapisują się od razu. Aktywną masę (BIAS) ustawiam automatycznie na dwóch pierwszych kanałach treningowych.',
-              style: Px.tiny),
+          Text(
+            'Zmiany zapisują się od razu. Aktywną masę (BIAS) ustawiam automatycznie na dwóch pierwszych kanałach treningowych.',
+            style: Px.tiny,
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -246,21 +310,24 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        selected: on,
-        label: label,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minWidth: 38, minHeight: 30),
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: on ? Px.accent : Px.panel,
-              border: Border.all(color: on ? Px.ink : Px.soft, width: 2),
-            ),
-            child: Text(label, style: Px.t(8, color: on ? Colors.white : Px.ink2, height: 1)),
-          ),
+    button: true,
+    selected: on,
+    label: label,
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 38, minHeight: 30),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: on ? Px.accent : Px.panel,
+          border: Border.all(color: on ? Px.ink : Px.soft, width: 2),
         ),
-      );
+        child: Text(
+          label,
+          style: Px.t(8, color: on ? Colors.white : Px.ink2, height: 1),
+        ),
+      ),
+    ),
+  );
 }

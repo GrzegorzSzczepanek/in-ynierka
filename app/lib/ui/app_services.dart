@@ -1,6 +1,9 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/widgets.dart';
 
 import '../core/db/session_repository.dart';
+import '../core/eeg/brainaccess/brainaccess_android_source.dart';
 import '../core/eeg/brainaccess/brainaccess_mac_source.dart';
 import '../core/eeg/brainaccess/lib_locator.dart';
 import '../core/eeg/mock_source.dart';
@@ -46,6 +49,13 @@ class AppServices {
       final s = settings;
       if (s.source == SourceKind.device) {
         if (s.deviceName.isEmpty) return UnavailableSource('Nie wybrano czepka. Wybierz go w ustawieniach.');
+        if (Platform.isAndroid) {
+          return BrainAccessAndroidSource(
+            deviceName: s.deviceName,
+            channelNames: s.channelNames,
+            biasChannels: s.biasIndicesFor(protocol),
+          );
+        }
         final lib = findBacoreLib(override: s.libPath);
         if (lib == null) return UnavailableSource('Nie znaleziono biblioteki libbacore.');
         return BrainAccessMacSource(

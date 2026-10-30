@@ -47,3 +47,25 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// BrainAccessKit (licencja: tylko jako czesc aplikacji) lezy w archive/, rozpakowywany do vendor/.
+val kitZip = rootProject.file("../../archive/BrainAccessKit-2.2.0.zip")
+val kitLibs = rootProject.file("../../vendor/android/libs")
+val extractKit by tasks.registering(Copy::class) {
+    onlyIf { !kitLibs.resolve("core-release.aar").exists() }
+    from(zipTree(kitZip)) {
+        include("*/libs/*")
+        eachFile { path = name }
+        includeEmptyDirs = false
+    }
+    into(kitLibs)
+}
+tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(extractKit) }
+
+dependencies {
+    implementation(fileTree(mapOf("dir" to kitLibs, "include" to listOf("core-release.aar", "transport-android-release.aar", "protocol-*.jar"))))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("no.nordicsemi.android:ble:2.9.0")
+    implementation("no.nordicsemi.android:ble-ktx:2.9.0")
+}
