@@ -9,6 +9,7 @@ import '../core/eeg/brainaccess/lib_locator.dart';
 import '../core/eeg/mock_source.dart';
 import '../core/eeg/unavailable_source.dart';
 import '../core/session/session_controller.dart';
+import '../core/update/update_checker.dart';
 import '../core/settings/app_settings.dart';
 import '../core/session/session_models.dart';
 import '../core/session/training_protocol.dart';
@@ -22,6 +23,8 @@ class AppServices {
     this.appVersion = '0.1.0',
     this.configOverride,
     this.exportDir = '',
+    this.updateFetch,
+    this.openUrl,
   }) : _sourceOverride = sourceFactory;
 
   final SessionRepository repository;
@@ -32,6 +35,20 @@ class AppServices {
   /// Katalog eksportu sesji (tryb badacza).
   final String exportDir;
   final SourceFactory? _sourceOverride;
+
+  /// Pobieranie danych z GitHuba; null wylacza sprawdzanie aktualizacji (testy).
+  final UpdateFetch? updateFetch;
+
+  /// Otwarcie adresu w przegladarce systemu.
+  final Future<void> Function(String url)? openUrl;
+
+  bool get updatesAvailable => updateFetch != null;
+
+  Future<UpdateInfo?> checkForUpdate() {
+    final fetch = updateFetch;
+    if (fetch == null) return Future.value(null);
+    return UpdateChecker(currentVersion: appVersion, fetch: fetch, token: settings.updateToken).check();
+  }
 
   AppSettings get settings => AppSettings.load(repository);
 

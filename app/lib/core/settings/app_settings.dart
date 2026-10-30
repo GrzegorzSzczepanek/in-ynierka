@@ -15,6 +15,9 @@ class AppSettings {
     this.naming = ChannelNaming.manufacturer,
     this.libPath = '',
     this.showInstruction = true,
+    this.checkUpdates = true,
+    this.updateToken = '',
+    this.skippedVersion = '',
     Map<String, List<String>>? training,
   }) : training = training ?? {};
 
@@ -28,6 +31,15 @@ class AppSettings {
   /// Instrukcja przed treningiem.
   bool showInstruction;
 
+  /// Sprawdzanie nowych wydan na GitHubie przy starcie.
+  bool checkUpdates;
+
+  /// Token GitHub z prawem odczytu, tylko dla prywatnego repozytorium.
+  String updateToken;
+
+  /// Wersja, o ktorej uzytkownik kazal nie przypominac.
+  String skippedVersion;
+
   /// Id protokolu -> wybrane kanaly treningowe (brak = domyslne protokolu).
   final Map<String, List<String>> training;
 
@@ -37,6 +49,9 @@ class AppSettings {
     'naming': 'channel_names',
     'lib': 'bacore_lib',
     'instruction': 'show_instruction',
+    'updates': 'check_updates',
+    'token': 'update_token',
+    'skipped': 'update_skipped',
   };
 
   /// Zrodlo Demo zawsze uzywa nazw 10-20.
@@ -88,6 +103,9 @@ class AppSettings {
           : ChannelNaming.manufacturer,
       libPath: repo.setting(_keys['lib']!) ?? '',
       showInstruction: repo.setting(_keys['instruction']!) != 'off',
+      checkUpdates: repo.setting(_keys['updates']!) != 'off',
+      updateToken: repo.setting(_keys['token']!) ?? '',
+      skippedVersion: repo.setting(_keys['skipped']!) ?? '',
     );
     for (final p in TrainingProtocol.all) {
       final v = repo.setting('train_${p.id}');
@@ -102,6 +120,9 @@ class AppSettings {
     repo.setSetting(_keys['naming']!, naming == ChannelNaming.numbered ? 'numbered' : 'manufacturer');
     repo.setSetting(_keys['lib']!, libPath);
     repo.setSetting(_keys['instruction']!, showInstruction ? 'on' : 'off');
+    repo.setSetting(_keys['updates']!, checkUpdates ? 'on' : 'off');
+    repo.setSetting(_keys['token']!, updateToken);
+    repo.setSetting(_keys['skipped']!, skippedVersion);
     for (final p in TrainingProtocol.all) {
       repo.setSetting('train_${p.id}', (training[p.id] ?? const []).join(','));
     }

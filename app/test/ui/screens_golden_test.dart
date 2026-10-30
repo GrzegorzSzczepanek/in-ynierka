@@ -386,7 +386,7 @@ void main() {
     await t.pump();
     expect(AppSettings.load(repo).source, SourceKind.device);
 
-    await t.enterText(find.byType(TextField), lib.path);
+    await t.enterText(find.byType(TextField).first, lib.path);
     await t.pump();
     expect(AppSettings.load(repo).libPath, lib.path);
 

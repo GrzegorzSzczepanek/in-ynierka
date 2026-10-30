@@ -37,6 +37,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<String>? _found;
   String? _scanError;
   bool _saved = false;
+  String? _updateStatus;
+  bool _checkingUpdate = false;
+  late final TextEditingController _token;
   Timer? _savedTimer;
 
   static const _demoChannels = ['O1', 'O2', 'F3', 'F4', 'C3', 'C4'];
@@ -48,12 +51,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loaded = true;
     _s = ServicesScope.of(context).settings;
     _lib = TextEditingController(text: _s.libPath);
+    _token = TextEditingController(text: _s.updateToken);
   }
 
   @override
   void dispose() {
     _savedTimer?.cancel();
     _lib.dispose();
+    _token.dispose();
     super.dispose();
   }
 
@@ -101,6 +106,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'Skan nie powiódł się: $e. Sprawdź Bluetooth i uprawnienia aplikacji.';
       });
     }
+  }
+
+  Future<void> _checkNow() async {
+    final services = ServicesScope.of(context);
+    setState(() {
+      _checkingUpdate = true;
+      _updateStatus = null;
+    });
+    String status;
+    try {
+      final info = await services.checkForUpdate();
+      status = info == null ? 'Masz najnowszą wersję (${services.appVersion}).' : 'Dostępna nowa wersja ${info.version}.';
+      if (info != null) await services.openUrl?.call(info.assetUrl ?? info.pageUrl);
+    } catch (e) {
+      status = 'Nie udało się sprawdzić: $e. Repozytorium prywatne wymaga tokena.';
+    }
+    if (!mounted) return;
+    setState(() {
+      _checkingUpdate = false;
+      _updateStatus = status;
+    });
   }
 
   void _toggle(TrainingProtocol p, String name) {
@@ -288,6 +314,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+          Text('AKTUALIZACJE', style: Px.t(10)),
+          const SizedBox(height: 6),
+          PkMenu(
+            rows: [
+              PkMenuRow(
+                label: 'SPRAWDZAJ PRZY STARCIE',
+                sub: 'pytam o pobranie, gdy jest nowa wersja',
+                trailing: _s.checkUpdates ? 'WŁ' : 'WYŁ',
+                selected: _s.checkUpdates,
+                onTap: () {
+                  _s.checkUpdates = !_s.checkUpdates;
+                  _save();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          PkAction(
+            label: _checkingUpdate ? 'SPRAWDZAM…' : 'SPRAWDŹ TERAZ',
+            primary: false,
+            onTap: _checkingUpdate || !ServicesScope.of(context).updatesAvailable ? null : _checkNow,
+          ),
+          if (_updateStatus != null)
+            Padding(padding: const EdgeInsets.only(top: 6), child: Text(_updateStatus!, style: Px.tiny)),
+          const SizedBox(height: 6),
+          Text('Token GitHub (tylko dla prywatnego repozytorium, prawo odczytu)', style: Px.tiny),
+          const SizedBox(height: 4),
+          TextField(
+            controller: _token,
+            obscureText: true,
+            style: Px.t(9, height: 1.4),
+            decoration: const InputDecoration(
+              isDense: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+              filled: true,
+              fillColor: Px.panel,
+            ),
+            onChanged: (v) {
+              _s.updateToken = v.trim();
+              _s.save(ServicesScope.of(context).repository);
+            },
           ),
           const SizedBox(height: 14),
           Text('KANAŁY TRENINGOWE', style: Px.t(10)),
