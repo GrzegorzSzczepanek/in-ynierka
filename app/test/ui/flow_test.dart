@@ -31,14 +31,10 @@ void main() {
     expect(find.text('NEURONEK'), findsOneWidget);
     expect(find.text('ENERG'), findsOneWidget);
     expect(find.text('KALIBRACJA'), findsOneWidget);
-    expect(find.textContaining('relaks, 9 min'), findsOneWidget);
-    expect(find.text('RELAKS'), findsOneWidget);
-    expect(find.text('SKUPIENIE'), findsOneWidget);
-    await t.tap(find.text('SKUPIENIE'));
-    await t.pump();
-    expect(find.textContaining('skupienie, 9 min'), findsOneWidget);
-    await t.tap(find.text('RELAKS'));
-    await t.pump();
+    expect(find.textContaining('trening alfa, 9 min'), findsOneWidget);
+    expect(find.text('TRENING ALFA'), findsOneWidget);
+    expect(find.text('SKUPIENIE'), findsNothing);
+    expect(find.text('RELAKS'), findsNothing);
 
     await t.ensureVisible(find.text('POSTĘP'));
     await t.tap(find.text('POSTĘP'));
@@ -50,6 +46,11 @@ void main() {
 
     await t.ensureVisible(find.text('TRENING'));
     await t.tap(find.text('TRENING'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 500));
+    expect(find.text('JAK TRENOWAĆ'), findsOneWidget);
+    expect(find.text('POŁĄCZENIE'), findsNothing);
+    await t.tap(find.text('ROZPOCZYNAM'));
     await t.pump();
     await t.pump(const Duration(milliseconds: 500));
     expect(find.text('POŁĄCZENIE'), findsOneWidget);

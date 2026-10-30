@@ -7,10 +7,12 @@ import '../../core/db/session_repository.dart';
 import '../../core/session/session_controller.dart';
 import '../../core/session/session_models.dart';
 import '../../core/session/training_protocol.dart';
+import '../../core/settings/app_settings.dart';
 import '../app_services.dart';
 import '../format.dart';
 import 'calibration_screen.dart';
 import 'connection_screen.dart';
+import 'instruction_screen.dart';
 import 'summary_screen.dart';
 import 'training_screen.dart';
 
@@ -18,7 +20,7 @@ import 'training_screen.dart';
 class SessionFlowScreen extends StatefulWidget {
   const SessionFlowScreen({
     super.key,
-    this.protocol = TrainingProtocol.relaks,
+    this.protocol = TrainingProtocol.alfa,
     this.calibrationOnly = false,
   });
 
@@ -45,13 +47,16 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
   int _lastRewards = 0;
   bool _lastValid = true;
   bool _started = false;
+  bool _showInstruction = false;
+  Future<void>? _running;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
-      _start();
+      _showInstruction = !widget.calibrationOnly && ServicesScope.of(context).settings.showInstruction;
+      if (!_showInstruction) _start();
     }
   }
 
@@ -81,13 +86,13 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       stored: services.repository.lastCalibration(widget.protocol),
     );
     _sub = controller.snapshots.listen(_onSnapshot);
-    unawaited(_run(controller, persistence, services.repository));
+    _running = _run(controller, persistence, services.repository);
   }
 
   Future<void> _run(SessionController c, SessionPersistence p, SessionRepository repo) async {
     final result = await c.run();
     await p.finish(result);
-    if (!mounted) return;
+    if (!mounted || !identical(_controller, c)) return;
     if (widget.calibrationOnly && result.status == SessionStatus.completed) {
       Navigator.of(context).pop();
       return;
@@ -138,6 +143,24 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     Navigator.of(context).pop();
   }
 
+  void _setShowInstruction(bool on) {
+    final services = ServicesScope.of(context);
+    final s = services.settings..showInstruction = on;
+    s.save(services.repository);
+    setState(() {});
+  }
+
+  /// Przelacza trening na kanaly z kontaktem i zaczyna laczenie od nowa.
+  Future<void> _useContactChannels(List<ChannelContact> contact) async {
+    final picked = AppSettings.channelsWithContact(contact);
+    if (picked.isEmpty) return;
+    ServicesScope.of(context).useTrainingChannels(widget.protocol, picked);
+    final old = _running;
+    _controller?.finish();
+    await old?.timeout(const Duration(seconds: 5), onTimeout: () {});
+    if (mounted) _restart();
+  }
+
   void _restart() {
     _sub?.cancel();
     setState(() {
@@ -150,6 +173,17 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
   Widget build(BuildContext context) {
     final result = _result;
     final s = _snapshot;
+    if (_showInstruction) {
+      return InstructionScreen(
+        showAgain: ServicesScope.of(context).settings.showInstruction,
+        onShowAgain: _setShowInstruction,
+        onBack: () => Navigator.of(context).pop(),
+        onStart: () => setState(() {
+          _showInstruction = false;
+          _start();
+        }),
+      );
+    }
     if (result != null && result.status != SessionStatus.connectionLost) {
       return SummaryScreen(
         result: result,
@@ -206,6 +240,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
               ? _config.reconnectAttempts
               : _config.connectAttempts,
           onFinish: lostEnd ? _leave : _finish,
+          onUseContactChannels: s.contact == null ? null : () => _useContactChannels(s.contact!),
           onRetry: s.phase == SessionPhase.connectionLost
               ? _controller?.retry
               : s.phase == SessionPhase.deviceSelection || lostEnd

@@ -14,6 +14,7 @@ class ConnectionScreen extends StatelessWidget {
     required this.maxAttempts,
     required this.onFinish,
     this.onRetry,
+    this.onUseContactChannels,
   });
 
   final SessionSnapshot snapshot;
@@ -21,6 +22,9 @@ class ConnectionScreen extends StatelessWidget {
   final int maxAttempts;
   final VoidCallback onFinish;
   final VoidCallback? onRetry;
+
+  /// Przelacza trening na kanaly, ktore teraz maja kontakt.
+  final VoidCallback? onUseContactChannels;
 
   @override
   Widget build(BuildContext context) {
@@ -59,21 +63,27 @@ class ConnectionScreen extends StatelessWidget {
               'SPRAWDZAM KONTAKT',
               missing.isEmpty
                   ? 'Czekam na odczyt kontaktu elektrod.'
-                  : '${missing.join(', ')}: kontakt za słaby. Rozsuń włosy pod elektrodą i dociśnij czepek.',
+                  : '${missing.join(', ')}: kontakt za słaby. Rozsuń włosy pod elektrodą i dociśnij czepek albo użyj kanałów, które kontakt mają.',
               Mood.focused,
             ),
     };
 
     final lost = phase == SessionPhase.connectionLost || phase == SessionPhase.deviceSelection;
+    final canSwitch = onUseContactChannels != null &&
+        (phase == SessionPhase.contactCheck) &&
+        missing.isNotEmpty &&
+        (withContact ?? 0) > 0;
     return ScreenFrame(
       footer: true,
       bottom: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (canSwitch) PkAction(label: 'UŻYJ KANAŁÓW Z KONTAKTEM', onTap: onUseContactChannels),
+          if (canSwitch) const SizedBox(height: 8),
           if (lost && onRetry != null) PkAction(label: 'SPRÓBUJ PONOWNIE', onTap: onRetry),
           if (lost && onRetry != null) const SizedBox(height: 8),
-          PkAction(label: lost ? 'WRÓĆ' : 'ZAKOŃCZ', primary: !(lost && onRetry != null), onTap: onFinish),
+          PkAction(label: lost ? 'WRÓĆ' : 'ZAKOŃCZ', primary: !(lost && onRetry != null) && !canSwitch, onTap: onFinish),
         ],
       ),
       child: ListView(
@@ -113,12 +123,22 @@ class ConnectionScreen extends StatelessWidget {
           const SizedBox(height: 12),
           PkDialog(
             color: lost ? Px.warnBg : Px.panel,
-            text: '$headline\n$body',
+            text: '$headline\n$body${snapshot.error == null || phase == SessionPhase.contactCheck ? '' : '\n\nPowód: ${connectErrorText(snapshot.error!)}'}',
           ),
         ],
       ),
     );
   }
+}
+
+/// Czytelny powod nieudanego polaczenia z kodu lub komunikatu zrodla.
+String connectErrorText(String reason) {
+  if (reason.startsWith('connect_failed')) return 'czepek nie odpowiada (${reason.split(':').last}). Włącz go i zbliż.';
+  if (reason.startsWith('channels')) return 'czepek ma mniej kanałów, niż ustawiono.';
+  if (reason.startsWith('start_stream') || reason.startsWith('load_config')) {
+    return 'nie udało się uruchomić strumienia ($reason).';
+  }
+  return reason;
 }
 
 class _ChannelGrid extends StatelessWidget {

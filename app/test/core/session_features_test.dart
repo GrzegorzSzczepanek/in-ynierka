@@ -195,7 +195,7 @@ void main() {
       await p.finish(r);
       repo.setMood(p.sessionId, 4);
 
-      final stored = repo.lastCalibration(TrainingProtocol.relaks)!;
+      final stored = repo.lastCalibration(TrainingProtocol.alfa)!;
       expect(stored.thresholdY, r.calibrations.single.result.thresholdY);
       expect(stored.alphaRatio, closeTo(6.25, 2.5));
       expect(stored.alphaPeakHz, closeTo(10, 0.6));

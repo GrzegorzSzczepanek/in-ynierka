@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/session/connection_monitor.dart';
 import '../../core/session/session_models.dart';
 import '../../core/session/training_protocol.dart';
+import '../../core/settings/app_settings.dart';
 import '../app_services.dart';
 import 'connection_screen.dart';
 
@@ -60,6 +61,13 @@ class _ConnectionCheckScreenState extends State<ConnectionCheckScreen> {
     _start();
   }
 
+  Future<void> _useContactChannels(List<ChannelContact> contact) async {
+    final picked = AppSettings.channelsWithContact(contact);
+    if (picked.isEmpty) return;
+    ServicesScope.of(context).useTrainingChannels(widget.protocol, picked);
+    await _retry();
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = _state;
@@ -76,8 +84,9 @@ class _ConnectionCheckScreenState extends State<ConnectionCheckScreen> {
     );
     return ConnectionScreen(
       snapshot: snapshot,
-      trainingChannels: widget.protocol.channels,
+      trainingChannels: ServicesScope.of(context).sessionConfigFor(widget.protocol).trainingChannels,
       maxAttempts: 3,
+      onUseContactChannels: s.contact == null ? null : () => _useContactChannels(s.contact!),
       onFinish: () => Navigator.of(context).pop(),
       onRetry: s.status == MonitorStatus.lost || s.status == MonitorStatus.failed ? _retry : null,
     );

@@ -15,7 +15,7 @@ class SummaryScreen extends StatelessWidget {
     required this.result,
     required this.recent,
     required this.onDone,
-    this.protocol = TrainingProtocol.relaks,
+    this.protocol = TrainingProtocol.alfa,
     this.mood,
     this.onMood,
   });
@@ -141,7 +141,7 @@ class SummaryScreen extends StatelessWidget {
           if (onMood != null && blocks.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text('JAK SIĘ CZUJESZ?', style: Px.t(10)),
-            Text('1 spięty, 5 zrelaksowany', style: Px.tiny),
+            Text('1 bardzo źle, 5 bardzo dobrze', style: Px.tiny),
             const SizedBox(height: 6),
             PkRating(value: mood, onChanged: onMood!, label: 'Samopoczucie'),
           ],

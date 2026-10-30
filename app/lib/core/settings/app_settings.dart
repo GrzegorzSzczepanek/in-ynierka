@@ -1,4 +1,5 @@
 import '../db/session_repository.dart';
+import '../session/session_models.dart';
 import '../eeg/brainaccess/channel_map.dart';
 import '../session/training_protocol.dart';
 
@@ -13,6 +14,7 @@ class AppSettings {
     this.deviceName = '',
     this.naming = ChannelNaming.manufacturer,
     this.libPath = '',
+    this.showInstruction = true,
     Map<String, List<String>>? training,
   }) : training = training ?? {};
 
@@ -23,6 +25,9 @@ class AppSettings {
   /// Reczna sciezka libbacore; puste = wyszukanie automatyczne.
   String libPath;
 
+  /// Instrukcja przed treningiem.
+  bool showInstruction;
+
   /// Id protokolu -> wybrane kanaly treningowe (brak = domyslne protokolu).
   final Map<String, List<String>> training;
 
@@ -31,6 +36,7 @@ class AppSettings {
     'device': 'device_name',
     'naming': 'channel_names',
     'lib': 'bacore_lib',
+    'instruction': 'show_instruction',
   };
 
   /// Zrodlo Demo zawsze uzywa nazw 10-20.
@@ -63,6 +69,16 @@ class AppSettings {
     ].take(2).toList();
   }
 
+  static const _posterior = ['O1', 'O2', 'Oz', 'POz', 'PO3', 'PO4', 'Pz', 'P3', 'P4', 'P7', 'P8'];
+
+  /// Kanaly treningowe z tych, ktore maja kontakt: najpierw tyl glowy (alfa),
+  /// w razie braku pierwsze z kontaktem, do czterech.
+  static List<String> channelsWithContact(List<ChannelContact> contacts) {
+    final ok = [for (final c in contacts) if (c.contact) c.name];
+    final back = [for (final n in _posterior) if (ok.contains(n)) n];
+    return (back.isNotEmpty ? back : ok).take(4).toList();
+  }
+
   static AppSettings load(SessionRepository repo) {
     final s = AppSettings(
       source: repo.setting(_keys['source']!) == 'device' ? SourceKind.device : SourceKind.demo,
@@ -71,6 +87,7 @@ class AppSettings {
           ? ChannelNaming.numbered
           : ChannelNaming.manufacturer,
       libPath: repo.setting(_keys['lib']!) ?? '',
+      showInstruction: repo.setting(_keys['instruction']!) != 'off',
     );
     for (final p in TrainingProtocol.all) {
       final v = repo.setting('train_${p.id}');
@@ -84,6 +101,7 @@ class AppSettings {
     repo.setSetting(_keys['device']!, deviceName);
     repo.setSetting(_keys['naming']!, naming == ChannelNaming.numbered ? 'numbered' : 'manufacturer');
     repo.setSetting(_keys['lib']!, libPath);
+    repo.setSetting(_keys['instruction']!, showInstruction ? 'on' : 'off');
     for (final p in TrainingProtocol.all) {
       repo.setSetting('train_${p.id}', (training[p.id] ?? const []).join(','));
     }

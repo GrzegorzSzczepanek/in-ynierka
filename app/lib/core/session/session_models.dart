@@ -25,7 +25,7 @@ enum SessionStatus { completed, interrupted, connectionLost }
 class SessionConfig {
   const SessionConfig({
     this.processing = const ProcessingConfig(),
-    this.protocol = TrainingProtocol.relaks,
+    this.protocol = TrainingProtocol.alfa,
     List<String>? trainingChannels,
     this.calibrationS = 60,
     this.calibrationMaxS = 150,
@@ -226,6 +226,7 @@ class SessionSnapshot {
     this.alphaPeakHz,
     this.canSkipCalibration = false,
     this.controlRating,
+    this.error,
   });
 
   final SessionPhase phase;
@@ -256,6 +257,9 @@ class SessionSnapshot {
 
   /// Ocena poczucia kontroli (1..5) ostatniego bloku, jesli podana.
   final int? controlRating;
+
+  /// Powod ostatniej nieudanej proby polaczenia (kod lub komunikat zrodla).
+  final String? error;
 }
 
 class SessionResult {

@@ -44,7 +44,7 @@ class CalibrationHubScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   s == null
-                      ? 'Nie ma jeszcze kalibracji dla treningu ${protocol.title.toLowerCase()}.'
+                      ? 'Nie ma jeszcze kalibracji.'
                       : 'Ostatnia kalibracja: ${d!.day}.${d.month.toString().padLeft(2, '0')}.${d.year}.',
                   style: Px.t(10, height: 1.7),
                 ),

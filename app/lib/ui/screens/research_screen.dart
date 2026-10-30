@@ -17,7 +17,7 @@ import '../theme/pixel_theme.dart';
 class ResearchScreen extends StatefulWidget {
   const ResearchScreen({
     super.key,
-    this.protocol = TrainingProtocol.relaks,
+    this.protocol = TrainingProtocol.alfa,
     this.monitor,
     this.reportOverride,
   });

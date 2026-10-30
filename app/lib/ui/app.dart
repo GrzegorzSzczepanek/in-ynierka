@@ -37,7 +37,7 @@ class _HomeRoute extends StatefulWidget {
 }
 
 class _HomeRouteState extends State<_HomeRoute> {
-  TrainingProtocol _selected = TrainingProtocol.relaks;
+  TrainingProtocol _selected = TrainingProtocol.alfa;
 
   Future<void> _open(Widget screen) async {
     await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));

@@ -22,7 +22,7 @@ class TrainingScreen extends StatelessWidget {
     required this.log,
     required this.onFinish,
     this.history = const [],
-    this.protocol = TrainingProtocol.relaks,
+    this.protocol = TrainingProtocol.alfa,
     this.onPause,
     this.onResume,
     this.onRate,

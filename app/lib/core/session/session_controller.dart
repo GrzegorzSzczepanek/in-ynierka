@@ -72,6 +72,7 @@ class SessionController {
   var _closedFeatures = <double>[];
   var _closedPeaks = <double>[];
   int _closedRepeats = 0;
+  String? _connectError;
   double? _alphaRatio;
   double? _alphaPeakHz;
 
@@ -228,10 +229,13 @@ class SessionController {
       await src.start();
       final it = StreamIterator(src.items);
       if (await it.moveNext() && it.current is SegmentStart) {
+        _connectError = null;
         onItem?.call(it.current);
         _segmentStart(it.current as SegmentStart);
         return it;
       }
+      final failed = it.current;
+      if (failed is DisconnectedEvent) _connectError = failed.reason;
       await it.cancel();
     }
     return null;
@@ -571,6 +575,7 @@ class SessionController {
       alphaRatio: _alphaRatio,
       alphaPeakHz: _alphaPeakHz,
       canSkipCalibration: canSkipCalibration,
+      error: _connectError,
       controlRating: _controlRatings[_blockNo],
     );
     _snapshots.add(_last!);

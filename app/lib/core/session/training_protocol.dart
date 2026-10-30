@@ -17,11 +17,11 @@ class TrainingProtocol {
     required this.channels,
   });
 
-  static const relaks = TrainingProtocol(
-    id: 'relaks',
+  static const alfa = TrainingProtocol(
+    id: 'alfa',
     dbName: 'Trening alfa',
-    title: 'Relaks',
-    subtitle: 'alfa 8–12 Hz, O1 O2',
+    title: 'Trening alfa',
+    subtitle: 'moc alfa 8–12 Hz, oczy otwarte',
     kind: FeatureKind.alphaPower,
     channels: ['O1', 'O2'],
   );
@@ -35,10 +35,14 @@ class TrainingProtocol {
     channels: ['F3', 'F4', 'C3', 'C4'],
   );
 
-  static const all = [relaks, skupienie];
+  /// Treningi oferowane w aplikacji.
+  static const all = [alfa];
+
+  /// Wszystkie znane protokoly, takze wycofane, bo moga byc w starej historii.
+  static const known = [alfa, skupienie];
 
   static TrainingProtocol byDbName(String name) =>
-      all.firstWhere((p) => p.dbName == name, orElse: () => relaks);
+      known.firstWhere((p) => p.dbName == name, orElse: () => alfa);
 
   final String id;
   final String dbName;

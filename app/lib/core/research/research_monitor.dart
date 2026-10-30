@@ -18,7 +18,7 @@ class ResearchMonitor {
   ResearchMonitor(
     this.sourceFactory, {
     this.config = const ProcessingConfig(),
-    this.protocol = TrainingProtocol.relaks,
+    this.protocol = TrainingProtocol.alfa,
     this.maxChannels = 8,
     this.seconds = 10,
   });
@@ -189,7 +189,7 @@ class ResearchMonitor {
   /// tak szybko, jak sie da, i podaje czasy etapow DSP.
   static Future<LatencyReport> runTest({
     ProcessingConfig config = const ProcessingConfig(),
-    TrainingProtocol protocol = TrainingProtocol.relaks,
+    TrainingProtocol protocol = TrainingProtocol.alfa,
     int seconds = 60,
   }) async {
     final src = MockSource(

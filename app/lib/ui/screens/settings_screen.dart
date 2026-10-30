@@ -36,6 +36,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _scanning = false;
   List<String>? _found;
   String? _scanError;
+  bool _saved = false;
+  Timer? _savedTimer;
 
   static const _demoChannels = ['O1', 'O2', 'F3', 'F4', 'C3', 'C4'];
 
@@ -50,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _savedTimer?.cancel();
     _lib.dispose();
     super.dispose();
   }
@@ -58,7 +61,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _save() {
     _s.save(ServicesScope.of(context).repository);
-    setState(() {});
+    _savedTimer?.cancel();
+    _savedTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (mounted) setState(() => _saved = false);
+    });
+    setState(() => _saved = true);
   }
 
   Future<void> _scan() async {
@@ -124,7 +131,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               PkBack(onPressed: () => Navigator.of(context).pop()),
               const SizedBox(width: 12),
-              Text('USTAWIENIA', style: Px.t(20, height: 1.3, shadow: true)),
+              Expanded(child: Text('USTAWIENIA', style: Px.t(20, height: 1.3, shadow: true))),
+              AnimatedOpacity(
+                opacity: _saved ? 1 : 0,
+                duration: const Duration(milliseconds: 150),
+                child: Text('ZAPISANO ✓', style: Px.t(9, color: Px.accent, height: 1)),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -261,6 +273,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
           const SizedBox(height: 14),
+          Text('TRENING', style: Px.t(10)),
+          const SizedBox(height: 6),
+          PkMenu(
+            rows: [
+              PkMenuRow(
+                label: 'INSTRUKCJA PRZED TRENINGIEM',
+                sub: _s.showInstruction ? 'pokazuję przy każdym starcie' : 'pomijam, start od razu',
+                trailing: _s.showInstruction ? 'WŁ' : 'WYŁ',
+                selected: _s.showInstruction,
+                onTap: () {
+                  _s.showInstruction = !_s.showInstruction;
+                  _save();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Text('KANAŁY TRENINGOWE', style: Px.t(10)),
           Text(
             'Wybierz kanały z kontaktem. Puste = domyślne protokołu.',
@@ -291,7 +320,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           const SizedBox(height: 10),
           Text(
-            'Zmiany zapisują się od razu. Aktywną masę (BIAS) ustawiam automatycznie na dwóch pierwszych kanałach treningowych.',
+            'Zmiany zapisują się od razu (widać to przy napisie ZAPISANO). Aktywną masę (BIAS) ustawiam automatycznie na dwóch pierwszych kanałach treningowych.',
             style: Px.tiny,
           ),
           const SizedBox(height: 8),

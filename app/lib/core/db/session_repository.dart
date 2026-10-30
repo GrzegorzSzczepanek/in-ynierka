@@ -22,7 +22,7 @@ class SessionRow {
     required this.status,
     required this.validMinutes,
     required this.blocksTotal,
-    this.protocol = TrainingProtocol.relaks,
+    this.protocol = TrainingProtocol.alfa,
   });
 
   final TrainingProtocol protocol;

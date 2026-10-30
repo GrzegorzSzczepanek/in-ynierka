@@ -27,16 +27,16 @@ void main() {
     final d = AppSettings.load(repo);
     expect(d.source, SourceKind.demo);
     expect(d.deviceName, '');
-    expect(d.trainingChannelsFor(TrainingProtocol.relaks), ['O1', 'O2']);
+    expect(d.trainingChannelsFor(TrainingProtocol.alfa), ['O1', 'O2']);
 
     final s = AppSettings(source: SourceKind.device, deviceName: 'BA MAXI 012', naming: ChannelNaming.numbered)
-      ..training['relaks'] = ['ch2', 'ch10'];
+      ..training['alfa'] = ['ch2', 'ch10'];
     s.save(repo);
     final back = AppSettings.load(repo);
     expect(back.source, SourceKind.device);
     expect(back.deviceName, 'BA MAXI 012');
     expect(back.naming, ChannelNaming.numbered);
-    expect(back.trainingChannelsFor(TrainingProtocol.relaks), ['ch2', 'ch10']);
+    expect(back.trainingChannelsFor(TrainingProtocol.alfa), ['ch2', 'ch10']);
     expect(back.trainingChannelsFor(TrainingProtocol.skupienie),
         ['ch11', 'ch6', 'ch14', 'ch4']); // F3 F4 C3 C4: zlacza 10, 5, 13, 3 plus 1
   });
@@ -45,15 +45,15 @@ void main() {
     expect(maxiManufacturerNames.length, 32);
     expect(maxiManufacturerNames[11], 'O1');
     expect(maxiManufacturerNames[1], 'O2');
-    final s = AppSettings(source: SourceKind.device, deviceName: 'x')..training['relaks'] = ['O2', 'Pz', 'O1'];
-    expect(s.biasIndicesFor(TrainingProtocol.relaks), [1, 9]);
+    final s = AppSettings(source: SourceKind.device, deviceName: 'x')..training['alfa'] = ['O2', 'Pz', 'O1'];
+    expect(s.biasIndicesFor(TrainingProtocol.alfa), [1, 9]);
     expect(AppSettings(source: SourceKind.device, naming: ChannelNaming.numbered).channelNames.first, 'ch1');
   });
 
   test('zrodlo Demo zawsze uzywa nazw 10-20, nawet gdy wybrano numery', () {
     final s = AppSettings(naming: ChannelNaming.numbered);
     expect(s.effectiveNaming, ChannelNaming.manufacturer);
-    expect(s.trainingChannelsFor(TrainingProtocol.relaks), ['O1', 'O2']);
+    expect(s.trainingChannelsFor(TrainingProtocol.alfa), ['O1', 'O2']);
   });
 
   test('lokalizator libbacore: sciezka reczna, bundle i vendor w drzewie', () {
@@ -76,13 +76,13 @@ void main() {
 
   test('AppServices wybiera zrodlo wg ustawien', () async {
     final services = AppServices(repository: repo, rawDir: '/tmp');
-    final p = TrainingProtocol.relaks;
+    final p = TrainingProtocol.alfa;
     expect(services.sourceFactoryFor(p)(), isA<MockSource>());
     expect(services.sourceLabel, 'DEMO');
     expect(services.sourceType, 'mock');
 
     AppSettings(source: SourceKind.device).save(repo);
-    expect(services.sourceLabel, 'CZEPEK');
+    expect(services.sourceLabel, 'CZEPEK, nie wybrano');
     expect(services.sourceType, 'device');
     expect(services.sourceFactoryFor(p)(), isA<UnavailableSource>()); // brak nazwy czepka
 
@@ -109,6 +109,31 @@ void main() {
       return s.items.first;
     });
     expect(first, isA<DisconnectedEvent>());
+  });
+
+  test('wybor kanalow z kontaktem: tyl glowy, a bez niego pierwsze z kontaktem', () {
+    final posterior = [
+      const ChannelContact('F3', true),
+      const ChannelContact('O2', true),
+      const ChannelContact('O1', false),
+      const ChannelContact('Pz', true),
+    ];
+    expect(AppSettings.channelsWithContact(posterior), ['O2', 'Pz']);
+    final front = [
+      for (final n in ['F3', 'F4', 'C3', 'C4', 'Cz', 'Fz']) ChannelContact(n, true),
+      const ChannelContact('T7', false),
+    ];
+    expect(AppSettings.channelsWithContact(front), ['F3', 'F4', 'C3', 'C4']);
+    expect(AppSettings.channelsWithContact([const ChannelContact('O1', false)]), isEmpty);
+  });
+
+  test('instrukcja przed treningiem: domyslnie wlaczona i zapisywana', () {
+    final db = AppDatabase.inMemory();
+    final repo = SessionRepository(db);
+    expect(AppSettings.load(repo).showInstruction, isTrue);
+    AppSettings(showInstruction: false).save(repo);
+    expect(AppSettings.load(repo).showInstruction, isFalse);
+    db.close();
   });
 }
 

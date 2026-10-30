@@ -38,7 +38,18 @@ class AppServices {
   bool get isDevice => _sourceOverride == null && settings.source == SourceKind.device;
   String get sourceType => isDevice ? 'device' : 'mock';
   String? get deviceIdentifier => isDevice ? settings.deviceName : null;
-  String get sourceLabel => isDevice ? 'CZEPEK' : 'DEMO';
+  String get sourceLabel {
+    if (!isDevice) return 'DEMO';
+    final name = settings.deviceName;
+    return name.isEmpty ? 'CZEPEK, nie wybrano' : 'CZEPEK $name';
+  }
+
+  /// Zapisuje wybrane kanaly treningowe protokolu w ustawieniach.
+  void useTrainingChannels(TrainingProtocol protocol, List<String> names) {
+    final s = settings;
+    s.training[protocol.id] = names;
+    s.save(repository);
+  }
   String get deviceModel => 'MAXI';
 
   /// Zrodlo EEG dla wybranego treningu wg ustawien (Demo lub czepek BrainAccess).
@@ -82,7 +93,7 @@ class AppServices {
         calibrationOnly: calibrationOnly,
       ));
 
-  SessionConfig get sessionConfig => sessionConfigFor(TrainingProtocol.relaks);
+  SessionConfig get sessionConfig => sessionConfigFor(TrainingProtocol.alfa);
 }
 
 class ServicesScope extends InheritedWidget {

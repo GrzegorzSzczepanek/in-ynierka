@@ -50,7 +50,7 @@ void main() {
           focus: 0.48,
           streakDays: 3,
         ),
-        selected: TrainingProtocol.relaks,
+        selected: TrainingProtocol.alfa,
         onSelect: _ignore,
         onStart: noop,
         onProgress: noop,
@@ -72,7 +72,7 @@ void main() {
           focus: 0.48,
           streakDays: 3,
         ),
-        selected: TrainingProtocol.relaks,
+        selected: TrainingProtocol.alfa,
         onSelect: _ignore,
         onStart: noop,
         onProgress: noop,
@@ -106,10 +106,12 @@ void main() {
         trainingChannels: const ['O1', 'O2'],
         maxAttempts: 3,
         onFinish: noop,
+        onUseContactChannels: noop,
       )));
 
   testWidgets('polaczenie: utracone', (t) => golden(t, 'polaczenie_utracone', ConnectionScreen(
-        snapshot: const SessionSnapshot(phase: SessionPhase.connectionLost, phaseElapsedS: 0, attempt: 3),
+        snapshot: const SessionSnapshot(
+            phase: SessionPhase.connectionLost, phaseElapsedS: 0, attempt: 3, error: 'Nie znaleziono czepka BA MAXI 012'),
         trainingChannels: const ['O1', 'O2'],
         maxAttempts: 3,
         onFinish: noop,
@@ -278,7 +280,7 @@ void main() {
       )));
 
   testWidgets('kalibracja: ostatni wynik', (t) => golden(t, 'kalibracja_hub', CalibrationHubScreen(
-        protocol: TrainingProtocol.relaks,
+        protocol: TrainingProtocol.alfa,
         stored: StoredCalibration(
           baseline: const cal.Baseline(3.1, 0.45),
           thresholdY: 0.58,
@@ -355,7 +357,7 @@ void main() {
       source: SourceKind.device,
       deviceName: 'BA MAXI 012',
       libPath: '/tmp/libbacore.dylib',
-    )..training['relaks'] = ['O2', 'Pz']);
+    )..training['alfa'] = ['O2', 'Pz']);
     await pumpScreen(
       t,
       ServicesScope(
@@ -403,12 +405,12 @@ void main() {
     await t.pump();
     await t.tap(find.text('Pz').first);
     await t.pump();
-    expect(AppSettings.load(repo).trainingChannelsFor(TrainingProtocol.relaks), ['O2', 'Pz']);
+    expect(AppSettings.load(repo).trainingChannelsFor(TrainingProtocol.alfa), ['O2', 'Pz']);
 
     await t.tap(find.text('NUMERY'));
     await t.pump();
     expect(AppSettings.load(repo).naming, ChannelNaming.numbered);
-    expect(AppSettings.load(repo).trainingChannelsFor(TrainingProtocol.relaks), ['ch12', 'ch2']);
+    expect(AppSettings.load(repo).trainingChannelsFor(TrainingProtocol.alfa), ['ch12', 'ch2']);
     db.close();
   });
 }
