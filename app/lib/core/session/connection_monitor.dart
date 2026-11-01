@@ -37,20 +37,27 @@ class ConnectionMonitor {
         await it.cancel();
         continue;
       }
-      final names = [for (final c in (it.current as SegmentStart).info.channels) c.name];
+      final names = [
+        for (final c in (it.current as SegmentStart).info.channels) c.name,
+      ];
       while (await it.moveNext()) {
         final item = it.current;
         if (item is EegPacket) {
           final ct = item.contact;
-          _emit(MonitorState(
-            MonitorStatus.connected,
-            contact: ct == null
-                ? [for (final n in names) ChannelContact(n, false)]
-                : [
-                    for (var i = 0; i < names.length; i++)
-                      ChannelContact(names[i], ct[i].isNotEmpty && ct[i].last),
-                  ],
-          ));
+          _emit(
+            MonitorState(
+              MonitorStatus.connected,
+              contact: ct == null
+                  ? [for (final n in names) ChannelContact(n, false)]
+                  : [
+                      for (var i = 0; i < names.length; i++)
+                        ChannelContact(
+                          names[i],
+                          ct[i].isNotEmpty && ct[i].last,
+                        ),
+                    ],
+            ),
+          );
         } else if (item is DisconnectedEvent) {
           if (!_stopped) _emit(const MonitorState(MonitorStatus.lost));
           return;

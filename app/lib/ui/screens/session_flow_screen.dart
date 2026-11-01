@@ -55,14 +55,19 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
-      _showInstruction = !widget.calibrationOnly && ServicesScope.of(context).settings.showInstruction;
+      _showInstruction =
+          !widget.calibrationOnly &&
+          ServicesScope.of(context).settings.showInstruction;
       if (!_showInstruction) _start();
     }
   }
 
   void _start() {
     final services = ServicesScope.of(context);
-    _config = services.sessionConfigFor(widget.protocol, calibrationOnly: widget.calibrationOnly);
+    _config = services.sessionConfigFor(
+      widget.protocol,
+      calibrationOnly: widget.calibrationOnly,
+    );
     _result = null;
     _mood = null;
     _log.clear();
@@ -89,7 +94,11 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     _running = _run(controller, persistence, services.repository);
   }
 
-  Future<void> _run(SessionController c, SessionPersistence p, SessionRepository repo) async {
+  Future<void> _run(
+    SessionController c,
+    SessionPersistence p,
+    SessionRepository repo,
+  ) async {
     final result = await c.run();
     await p.finish(result);
     if (!mounted || !identical(_controller, c)) return;
@@ -108,10 +117,17 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     final fb = s.feedback;
     if (s.phase == SessionPhase.training && fb != null) {
       final t = mmss(s.phaseElapsedS);
-      if (s.rewardCount > _lastRewards) _log.add(TrainingLogEntry(t, 'Nagroda'));
+      if (s.rewardCount > _lastRewards)
+        _log.add(TrainingLogEntry(t, 'Nagroda'));
       if (!fb.valid && _lastValid) {
-        _log.add(TrainingLogEntry(
-            t, s.lastInvalid == null ? 'Sygnał niewiarygodny' : reasonTitle(s.lastInvalid!)));
+        _log.add(
+          TrainingLogEntry(
+            t,
+            s.lastInvalid == null
+                ? 'Sygnał niewiarygodny'
+                : reasonTitle(s.lastInvalid!),
+          ),
+        );
       } else if (fb.valid && !_lastValid) {
         _log.add(TrainingLogEntry(t, 'Sygnał wrócił'));
       }
@@ -196,7 +212,11 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     }
     if (s == null) {
       return ConnectionScreen(
-        snapshot: const SessionSnapshot(phase: SessionPhase.connecting, phaseElapsedS: 0, attempt: 1),
+        snapshot: const SessionSnapshot(
+          phase: SessionPhase.connecting,
+          phaseElapsedS: 0,
+          attempt: 1,
+        ),
         trainingChannels: _config.trainingChannels,
         maxAttempts: _config.connectAttempts,
         onFinish: _finish,
@@ -216,14 +236,15 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       case SessionPhase.training:
       case SessionPhase.breakBetweenBlocks:
         return TrainingScreen(
-            snapshot: s,
-            log: _log,
-            history: List.of(_history),
-            onFinish: _finish,
-            protocol: widget.protocol,
-            onPause: _controller?.pause,
-            onResume: _controller?.resume,
-            onRate: (r) => _controller?.rateBlock(s.blockNo, r));
+          snapshot: s,
+          log: _log,
+          history: List.of(_history),
+          onFinish: _finish,
+          protocol: widget.protocol,
+          onPause: _controller?.pause,
+          onResume: _controller?.resume,
+          onRate: (r) => _controller?.rateBlock(s.blockNo, r),
+        );
       case SessionPhase.connecting:
       case SessionPhase.contactCheck:
       case SessionPhase.reconnecting:
@@ -240,12 +261,14 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
               ? _config.reconnectAttempts
               : _config.connectAttempts,
           onFinish: lostEnd ? _leave : _finish,
-          onUseContactChannels: s.contact == null ? null : () => _useContactChannels(s.contact!),
+          onUseContactChannels: s.contact == null
+              ? null
+              : () => _useContactChannels(s.contact!),
           onRetry: s.phase == SessionPhase.connectionLost
               ? _controller?.retry
               : s.phase == SessionPhase.deviceSelection || lostEnd
-                  ? _restart
-                  : null,
+              ? _restart
+              : null,
         );
     }
   }

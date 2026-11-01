@@ -37,21 +37,32 @@ class LatencyReport {
     List<int> renderUs = const [],
     required double stepMs,
   }) {
-    StageStat s(String name, List<int> us) =>
-        StageStat(name, percentileOf(us, 50) / 1000, percentileOf(us, 95) / 1000, n: us.length);
+    StageStat s(String name, List<int> us) => StageStat(
+      name,
+      percentileOf(us, 50) / 1000,
+      percentileOf(us, 95) / 1000,
+      n: us.length,
+    );
     final n = filterUs.length;
     final totals = <int>[
       for (var i = 0; i < n; i++)
-        filterUs[i] + qualityUs[i] + welchUs[i] + (i < smoothUs.length ? smoothUs[i] : 0),
+        filterUs[i] +
+            qualityUs[i] +
+            welchUs[i] +
+            (i < smoothUs.length ? smoothUs[i] : 0),
     ];
-    return LatencyReport([
-      s('Odbiór → bufor', receiveUs),
-      s('Filtracja', filterUs),
-      StageStat('Okno analizy (krok)', stepMs, stepMs, n: n),
-      s('Kontrola jakości', qualityUs),
-      s('Welch PSD', welchUs),
-      s('Wygładzanie EMA', smoothUs),
-      s('Render (Flutter)', renderUs),
-    ], s('Razem DSP', totals), windows: n);
+    return LatencyReport(
+      [
+        s('Odbiór → bufor', receiveUs),
+        s('Filtracja', filterUs),
+        StageStat('Okno analizy (krok)', stepMs, stepMs, n: n),
+        s('Kontrola jakości', qualityUs),
+        s('Welch PSD', welchUs),
+        s('Wygładzanie EMA', smoothUs),
+        s('Render (Flutter)', renderUs),
+      ],
+      s('Razem DSP', totals),
+      windows: n,
+    );
   }
 }

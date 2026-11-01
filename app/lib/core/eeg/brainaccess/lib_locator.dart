@@ -1,6 +1,7 @@
 import 'dart:io';
 
-const _relative = 'vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib';
+const _relative =
+    'vendor/mac_os_testing/BrainAccessCore-4.0.0-macos/lib/libbacore.dylib';
 
 /// Szuka biblioteki libbacore: wskazana sciezka, zmienna BACORE_LIB, pakiet
 /// aplikacji (Frameworks), potem katalog vendor/ w drzewie projektu (w gore od
@@ -21,7 +22,9 @@ String? findBacoreLib({
   if (ok(bundled)) return bundled;
 
   for (final start in [exe, cwd ?? Directory.current.path]) {
-    var dir = FileSystemEntity.isDirectorySync(start) ? Directory(start) : File(start).parent;
+    var dir = FileSystemEntity.isDirectorySync(start)
+        ? Directory(start)
+        : File(start).parent;
     for (var i = 0; i < 10; i++) {
       final candidate = '${dir.path}/$_relative';
       if (File(candidate).existsSync()) return candidate;

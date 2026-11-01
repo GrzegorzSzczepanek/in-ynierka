@@ -78,19 +78,25 @@ class MockSource implements EegSource {
     final total = duration == null
         ? null
         : (duration!.inMicroseconds * fs / 1e6 / chunkSize).round();
-    _controller.add(SegmentStart(StreamInfo(
-      sourceId: 'mock',
-      fs: fs,
-      channels: channels,
-      chunkSize: chunkSize,
-    )));
+    _controller.add(
+      SegmentStart(
+        StreamInfo(
+          sourceId: 'mock',
+          fs: fs,
+          channels: channels,
+          chunkSize: chunkSize,
+        ),
+      ),
+    );
     final period = Duration(microseconds: (chunkSize * 1e6 / fs).round());
     final clock = Stopwatch()..start();
     var n = 0;
     var lastDropped = false;
     while (_running && (total == null || n < total)) {
       if (disconnectAfterChunk != null && n >= disconnectAfterChunk!) {
-        _controller.add(DisconnectedEvent(reason: 'mock', tRecv: n * chunkSize / fs));
+        _controller.add(
+          DisconnectedEvent(reason: 'mock', tRecv: n * chunkSize / fs),
+        );
         break;
       }
       final first = n * chunkSize;
@@ -98,29 +104,33 @@ class MockSource implements EegSource {
         lastDropped = true;
       } else {
         if (lastDropped) {
-          _controller.add(GapEvent(firstSample: first - chunkSize, count: chunkSize));
+          _controller.add(
+            GapEvent(firstSample: first - chunkSize, count: chunkSize),
+          );
           lastDropped = false;
         }
-        _controller.add(EegPacket(
-          firstSample: first,
-          tRecv: first / fs,
-          contact: contactAt == null
-              ? null
-              : [
-                  for (var c = 0; c < channels.length; c++)
-                    [
-                      for (var i = 0; i < chunkSize; i++)
-                        contactAt!((first + i) / fs),
-                    ],
+        _controller.add(
+          EegPacket(
+            firstSample: first,
+            tRecv: first / fs,
+            contact: contactAt == null
+                ? null
+                : [
+                    for (var c = 0; c < channels.length; c++)
+                      [
+                        for (var i = 0; i < chunkSize; i++)
+                          contactAt!((first + i) / fs),
+                      ],
+                  ],
+            samples: [
+              for (var c = 0; c < channels.length; c++)
+                [
+                  for (var i = 0; i < chunkSize; i++)
+                    _sample((first + i) / fs, c, rng),
                 ],
-          samples: [
-            for (var c = 0; c < channels.length; c++)
-              [
-                for (var i = 0; i < chunkSize; i++)
-                  _sample((first + i) / fs, c, rng),
-              ],
-          ],
-        ));
+            ],
+          ),
+        );
       }
       n++;
       if (realtime) {

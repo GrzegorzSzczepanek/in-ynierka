@@ -32,12 +32,20 @@ List<StreamItem> splitDummy({
       out.add(GapEvent(firstSample: firstSample + i, count: j - i));
     } else {
       final len = j - i;
-      out.add(EegPacket(
-        firstSample: firstSample + i,
-        tRecv: tRecv,
-        samples: [for (var c = 0; c < channels; c++) flat.sublist(c * size + i, c * size + j)],
-        contact: [for (var c = 0; c < channels; c++) List.filled(len, contact[c] != 0)],
-      ));
+      out.add(
+        EegPacket(
+          firstSample: firstSample + i,
+          tRecv: tRecv,
+          samples: [
+            for (var c = 0; c < channels; c++)
+              flat.sublist(c * size + i, c * size + j),
+          ],
+          contact: [
+            for (var c = 0; c < channels; c++)
+              List.filled(len, contact[c] != 0),
+          ],
+        ),
+      );
     }
     i = j;
   }
@@ -52,8 +60,8 @@ class BrainAccessAndroidSource implements EegSource {
     this.biasChannels = const [],
     MethodChannel? methods,
     EventChannel? events,
-  })  : _methods = methods ?? brainAccessMethods,
-        _events = events ?? brainAccessEvents;
+  }) : _methods = methods ?? brainAccessMethods,
+       _events = events ?? brainAccessEvents;
 
   final String deviceName;
   final List<String>? channelNames;
@@ -78,7 +86,10 @@ class BrainAccessAndroidSource implements EegSource {
   Future<void> start() async {
     if (_started) return;
     _started = true;
-    _sub = _events.receiveBroadcastStream().listen(_onEvent, onError: (Object e) => _fail('$e'));
+    _sub = _events.receiveBroadcastStream().listen(
+      _onEvent,
+      onError: (Object e) => _fail('$e'),
+    );
     try {
       await _methods.invokeMethod<void>('start', {
         'device': deviceName,
@@ -96,18 +107,27 @@ class BrainAccessAndroidSource implements EegSource {
     switch (m['t']) {
       case 'ready':
         _channels = m['channels'] as int;
-        _controller.add(SegmentStart(StreamInfo(
-          sourceId: 'brainaccess',
-          fs: m['fs'] as int,
-          chunkSize: 25,
-          channels: [for (var c = 0; c < _channels; c++) Channel(channelNames?[c] ?? 'ch${c + 1}')],
-        )));
+        _controller.add(
+          SegmentStart(
+            StreamInfo(
+              sourceId: 'brainaccess',
+              fs: m['fs'] as int,
+              chunkSize: 25,
+              channels: [
+                for (var c = 0; c < _channels; c++)
+                  Channel(channelNames?[c] ?? 'ch${c + 1}'),
+              ],
+            ),
+          ),
+        );
       case 'chunk':
         final first = (m['first'] as num).toInt();
         final size = m['size'] as int;
         final expected = _next;
         if (expected != null && first > expected) {
-          _controller.add(GapEvent(firstSample: expected, count: first - expected));
+          _controller.add(
+            GapEvent(firstSample: expected, count: first - expected),
+          );
         }
         for (final i in splitDummy(
           firstSample: first,
@@ -128,7 +148,8 @@ class BrainAccessAndroidSource implements EegSource {
 
   void _fail(String reason) {
     if (_stopping) return;
-    if (!_controller.isClosed) _controller.add(DisconnectedEvent(reason: reason, tRecv: _now));
+    if (!_controller.isClosed)
+      _controller.add(DisconnectedEvent(reason: reason, tRecv: _now));
     unawaited(stop());
   }
 

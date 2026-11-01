@@ -48,10 +48,10 @@ class Welch {
     required this.segment,
     required this.overlap,
     required this.nfft,
-  })  : _window = Float64List.fromList([
-          for (var i = 0; i < segment; i++)
-            0.5 - 0.5 * cos(2 * pi * i / segment),
-        ]) {
+  }) : _window = Float64List.fromList([
+         for (var i = 0; i < segment; i++)
+           0.5 - 0.5 * cos(2 * pi * i / segment),
+       ]) {
     if (nfft & (nfft - 1) != 0 || nfft < segment) {
       throw ArgumentError('nfft musi byc potega 2 i >= segment');
     }

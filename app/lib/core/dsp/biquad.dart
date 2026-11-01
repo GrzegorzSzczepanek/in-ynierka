@@ -22,16 +22,26 @@ class Biquad {
     final w = 2 * pi * f / fs;
     final c = cos(w), al = sin(w) / (2 * q);
     final a0 = 1 + al;
-    return Biquad((1 - c) / 2 / a0, (1 - c) / a0, (1 - c) / 2 / a0,
-        -2 * c / a0, (1 - al) / a0);
+    return Biquad(
+      (1 - c) / 2 / a0,
+      (1 - c) / a0,
+      (1 - c) / 2 / a0,
+      -2 * c / a0,
+      (1 - al) / a0,
+    );
   }
 
   factory Biquad.highpass(double f, double fs, double q) {
     final w = 2 * pi * f / fs;
     final c = cos(w), al = sin(w) / (2 * q);
     final a0 = 1 + al;
-    return Biquad((1 + c) / 2 / a0, -(1 + c) / a0, (1 + c) / 2 / a0,
-        -2 * c / a0, (1 - al) / a0);
+    return Biquad(
+      (1 + c) / 2 / a0,
+      -(1 + c) / a0,
+      (1 + c) / 2 / a0,
+      -2 * c / a0,
+      (1 - al) / a0,
+    );
   }
 
   /// Notch w parametryzacji SciPy (iirnotch): szerokosc pasma = f0 / q.

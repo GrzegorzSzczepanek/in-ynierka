@@ -2,10 +2,19 @@ import 'dart:convert';
 import 'dart:io';
 
 /// Pobiera tresc odpowiedzi GET; rzuca wyjatek przy kodzie innym niz 200.
-typedef UpdateFetch = Future<String> Function(Uri url, Map<String, String> headers);
+typedef UpdateFetch = Future<String> Function(
+  Uri url,
+  Map<String, String> headers,
+);
 
 class UpdateInfo {
-  const UpdateInfo({required this.tag, required this.version, required this.pageUrl, this.assetUrl, this.notes = ''});
+  const UpdateInfo({
+    required this.tag,
+    required this.version,
+    required this.pageUrl,
+    this.assetUrl,
+    this.notes = '',
+  });
 
   final String tag;
   final String version;
@@ -20,7 +29,11 @@ class UpdateInfo {
 
 /// Czesci liczbowe wersji z tagu, np. "v0.1.2+3" -> [0, 1, 2].
 List<int> parseVersion(String v) {
-  final core = v.trim().replaceFirst(RegExp('^[vV]'), '').split(RegExp('[+-]')).first;
+  final core = v
+      .trim()
+      .replaceFirst(RegExp('^[vV]'), '')
+      .split(RegExp('[+-]'))
+      .first;
   return [for (final p in core.split('.')) int.tryParse(p) ?? 0];
 }
 
@@ -56,11 +69,14 @@ class UpdateChecker {
 
   /// Nowsze wydanie albo null, gdy aplikacja jest aktualna.
   Future<UpdateInfo?> check() async {
-    final body = await fetch(Uri.https('api.github.com', '/repos/$repo/releases/latest'), {
-      'Accept': 'application/vnd.github+json',
-      'User-Agent': 'neurotchi-app',
-      if (token.isNotEmpty) 'Authorization': 'Bearer $token',
-    });
+    final body = await fetch(
+      Uri.https('api.github.com', '/repos/$repo/releases/latest'),
+      {
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'neurotchi-app',
+        if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+      },
+    );
     final json = jsonDecode(body) as Map<String, dynamic>;
     if (json['draft'] == true || json['prerelease'] == true) return null;
     final tag = json['tag_name'] as String? ?? '';
@@ -69,12 +85,15 @@ class UpdateChecker {
     String? asset;
     for (final a in (json['assets'] as List? ?? const [])) {
       final name = (a as Map)['name'] as String? ?? '';
-      if (name.toLowerCase().contains(want)) asset = a['browser_download_url'] as String?;
+      if (name.toLowerCase().contains(want))
+        asset = a['browser_download_url'] as String?;
     }
     return UpdateInfo(
       tag: tag,
       version: tag.replaceFirst(RegExp('^[vV]'), ''),
-      pageUrl: json['html_url'] as String? ?? 'https://github.com/$repo/releases/latest',
+      pageUrl:
+          json['html_url'] as String? ??
+          'https://github.com/$repo/releases/latest',
       assetUrl: asset,
       notes: json['body'] as String? ?? '',
     );

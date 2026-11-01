@@ -27,15 +27,19 @@ class NeuronekSprites {
   static NeuronekSprites? _instance;
 
   static NeuronekSprites get instance =>
-      _instance ?? (throw StateError('NeuronekSprites.load() nie zostalo wywolane'));
+      _instance ??
+      (throw StateError('NeuronekSprites.load() nie zostalo wywolane'));
 
   static Future<NeuronekSprites> load([AssetBundle? bundle]) async {
     final existing = _instance;
     if (existing != null) return existing;
-    final raw = await (bundle ?? rootBundle).loadString('assets/neuronek/mimiki.json');
+    final raw = await (bundle ?? rootBundle).loadString(
+      'assets/neuronek/mimiki.json',
+    );
     final json = jsonDecode(raw) as Map<String, dynamic>;
     return _instance = NeuronekSprites._({
-      for (final e in json.entries) e.key: [for (final r in e.value as List) r as String],
+      for (final e in json.entries)
+        e.key: [for (final r in e.value as List) r as String],
     });
   }
 
@@ -54,7 +58,12 @@ const _palette = {
 
 /// Neuronek rysowany z siatki pikseli, bez rozmycia.
 class Neuronek extends StatelessWidget {
-  const Neuronek({super.key, this.mood = Mood.happy, this.height = 120, this.shadow = true});
+  const Neuronek({
+    super.key,
+    this.mood = Mood.happy,
+    this.height = 120,
+    this.shadow = true,
+  });
 
   final Mood mood;
   final double height;
@@ -89,8 +98,14 @@ class _SpritePainter extends CustomPainter {
     if (shadow) {
       paint.color = Px.soft;
       canvas.drawRect(
-          Rect.fromLTWH(size.width * 0.2, size.height - unit * 2, size.width * 0.6, unit * 2),
-          paint);
+        Rect.fromLTWH(
+          size.width * 0.2,
+          size.height - unit * 2,
+          size.width * 0.6,
+          unit * 2,
+        ),
+        paint,
+      );
     }
     for (var y = 0; y < rows.length; y++) {
       final row = rows[y];
@@ -105,7 +120,14 @@ class _SpritePainter extends CustomPainter {
         if (color != null) {
           paint.color = color;
           canvas.drawRect(
-              Rect.fromLTWH(x * unit, y * unit, (end - x) * unit + 0.5, unit + 0.5), paint);
+            Rect.fromLTWH(
+              x * unit,
+              y * unit,
+              (end - x) * unit + 0.5,
+              unit + 0.5,
+            ),
+            paint,
+          );
         }
         x = end;
       }

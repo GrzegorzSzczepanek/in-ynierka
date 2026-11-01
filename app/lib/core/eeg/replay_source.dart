@@ -17,8 +17,9 @@ class Recording {
   final List<List<double>> data;
 
   static Future<Recording> load(String basePath) async {
-    final meta = jsonDecode(await File('$basePath.json').readAsString())
-        as Map<String, dynamic>;
+    final meta = jsonDecode(
+      await File('$basePath.json').readAsString(),
+    ) as Map<String, dynamic>;
     final lines = await File('$basePath.csv').readAsLines();
     final info = StreamInfo(
       contract: meta['contract'] as int,
@@ -48,20 +49,20 @@ class Recording {
   }
 
   Map<String, dynamic> metaJson() => {
-        'contract': info.contract,
-        'sourceId': info.sourceId,
-        'fs': info.fs,
-        'chunkSize': info.chunkSize,
-        'channels': [
-          for (final c in info.channels) {'name': c.name, 'unit': c.unit},
-        ],
-      };
+    'contract': info.contract,
+    'sourceId': info.sourceId,
+    'fs': info.fs,
+    'chunkSize': info.chunkSize,
+    'channels': [
+      for (final c in info.channels) {'name': c.name, 'unit': c.unit},
+    ],
+  };
 
   List<String> csvLines() => [
-        'sample_number,${info.channels.map((c) => c.name).join(',')}',
-        for (var i = 0; i < sampleNumbers.length; i++)
-          '${sampleNumbers[i]},${[for (final ch in data) ch[i]].join(',')}',
-      ];
+    'sample_number,${info.channels.map((c) => c.name).join(',')}',
+    for (var i = 0; i < sampleNumbers.length; i++)
+      '${sampleNumbers[i]},${[for (final ch in data) ch[i]].join(',')}',
+  ];
 
   Future<void> save(String basePath) async {
     await File('$basePath.json').writeAsString(jsonEncode(metaJson()));
@@ -97,7 +98,9 @@ class ReplaySource implements EegSource {
     final info = recording.info;
     final sn = recording.sampleNumbers;
     _controller.add(SegmentStart(info));
-    final period = Duration(microseconds: (info.chunkSize * 1e6 / info.fs).round());
+    final period = Duration(
+      microseconds: (info.chunkSize * 1e6 / info.fs).round(),
+    );
     var i = 0;
     var sent = 0;
     while (_running && i < sn.length) {
@@ -108,16 +111,17 @@ class ReplaySource implements EegSource {
         end++;
       }
       if (i > 0 && sn[i] != sn[i - 1] + 1) {
-        _controller.add(GapEvent(
-          firstSample: sn[i - 1] + 1,
-          count: sn[i] - sn[i - 1] - 1,
-        ));
+        _controller.add(
+          GapEvent(firstSample: sn[i - 1] + 1, count: sn[i] - sn[i - 1] - 1),
+        );
       }
-      _controller.add(EegPacket(
-        firstSample: sn[i],
-        tRecv: sn[i] / info.fs,
-        samples: [for (final ch in recording.data) ch.sublist(i, end)],
-      ));
+      _controller.add(
+        EegPacket(
+          firstSample: sn[i],
+          tRecv: sn[i] / info.fs,
+          samples: [for (final ch in recording.data) ch.sublist(i, end)],
+        ),
+      );
       i = end;
       sent++;
       if (realtime) {

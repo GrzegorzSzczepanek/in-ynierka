@@ -37,7 +37,10 @@ class SessionPersistence {
   }) {
     Directory(rawDir).createSync(recursive: true);
     final id = repo.startSession(
-      protocolId: repo.ensureProtocol(config.processing, name: config.protocol.dbName),
+      protocolId: repo.ensureProtocol(
+        config.processing,
+        name: config.protocol.dbName,
+      ),
       sourceType: sourceType,
       deviceId: sourceType == 'device'
           ? repo.ensureDevice(identifier: deviceIdentifier!, model: deviceModel)
@@ -86,7 +89,9 @@ class SessionPersistence {
     final id = _segmentId;
     if (id == null) return;
     final span = _lastT - (_firstT ?? _lastT);
-    final fs = (_firstEnd != null && span > 0) ? (_lastEnd - _firstEnd!) / span : null;
+    final fs = (_firstEnd != null && span > 0)
+        ? (_lastEnd - _firstEnd!) / span
+        : null;
     repo.endSegment(id, fsMeasured: fs, reason: reason);
     final w = _writer;
     if (w != null) _pendingCloses.add(w.close());
@@ -97,7 +102,10 @@ class SessionPersistence {
   Future<void> finish(SessionResult result) async {
     _closeSegment('stop');
     await Future.wait(_pendingCloses);
-    repo.finishSession(sessionId, result,
-        actualDurationS: _clock.elapsed.inSeconds);
+    repo.finishSession(
+      sessionId,
+      result,
+      actualDurationS: _clock.elapsed.inSeconds,
+    );
   }
 }

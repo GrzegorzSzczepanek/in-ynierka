@@ -57,24 +57,24 @@ class ResearchMonitor {
 
   /// Ostatnie [seconds] s wybranych kanalow (kolejnosc czasowa, uV).
   List<Float64List> get traces => [
-        for (final r in _ring)
-          Float64List.fromList([
-            for (var i = 0; i < r.length; i++) r[(_written + i) % r.length],
-          ]),
-      ];
+    for (final r in _ring)
+      Float64List.fromList([
+        for (var i = 0; i < r.length; i++) r[(_written + i) % r.length],
+      ]),
+  ];
 
   /// Os czasu waznych okien po 1 s (najstarsze pierwsze).
   List<bool> get validSeconds => List.unmodifiable(_validSeconds);
 
   LatencyReport get report => LatencyReport.from(
-        filterUs: timings.filterUs,
-        qualityUs: timings.qualityUs,
-        welchUs: timings.welchUs,
-        smoothUs: _smoothUs,
-        receiveUs: _receiveUs,
-        renderUs: _renderUs,
-        stepMs: config.stepSamples / _fs * 1000,
-      );
+    filterUs: timings.filterUs,
+    qualityUs: timings.qualityUs,
+    welchUs: timings.welchUs,
+    smoothUs: _smoothUs,
+    receiveUs: _receiveUs,
+    renderUs: _renderUs,
+    stepMs: config.stepSamples / _fs * 1000,
+  );
 
   void recordRender(int us) {
     _renderUs.add(us);
@@ -106,7 +106,10 @@ class ResearchMonitor {
     _fs = s.info.fs;
     final all = [for (final c in s.info.channels) c.name];
     final train = protocol.channels.where(all.contains).toList();
-    names = [...train, ...all.where((n) => !train.contains(n))].take(maxChannels).toList();
+    names = [
+      ...train,
+      ...all.where((n) => !train.contains(n)),
+    ].take(maxChannels).toList();
     _idx = [for (final n in names) s.info.channelIndex(n)];
     _filters = [
       for (final _ in names)
@@ -142,7 +145,9 @@ class ResearchMonitor {
     }
     for (var i = 0; i < p.length; i++) {
       for (var c = 0; c < _idx.length; c++) {
-        _ring[c][_written % _ring[c].length] = _filters[c].process(p.samples[_idx[c]][i]);
+        _ring[c][_written % _ring[c].length] = _filters[c].process(
+          p.samples[_idx[c]][i],
+        );
       }
       _written++;
     }
@@ -173,7 +178,12 @@ class ResearchMonitor {
   }
 
   void _trim() {
-    for (final l in [timings.filterUs, timings.qualityUs, timings.welchUs, timings.totalUs]) {
+    for (final l in [
+      timings.filterUs,
+      timings.qualityUs,
+      timings.welchUs,
+      timings.totalUs,
+    ]) {
       if (l.length > 600) l.removeRange(0, l.length - 600);
     }
   }
@@ -199,8 +209,12 @@ class ResearchMonitor {
       betaAmplitudeUv: (_) => 5,
     );
     final timings = PipelineTimings();
-    final pipe = AlphaPipeline(config,
-        trainingChannels: protocol.channels, kind: protocol.kind, timings: timings);
+    final pipe = AlphaPipeline(
+      config,
+      trainingChannels: protocol.channels,
+      kind: protocol.kind,
+      timings: timings,
+    );
     final smooth = <int>[];
     FeedbackMapper? mapper;
     final done = src.items.forEach((i) {

@@ -22,16 +22,19 @@ Future<void> main() async {
   final raw = '${dir.path}/raw';
   Directory(raw).createSync(recursive: true);
 
-  runApp(NeurotchiApp(
-    services: AppServices(
-      repository: SessionRepository(database),
-      rawDir: raw,
-      appVersion: (await PackageInfo.fromPlatform()).version,
-      updateFetch: httpFetch,
-      openUrl: (url) async {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      },
-      exportDir: '${(await getApplicationDocumentsDirectory()).path}/NEUROtchi/eksport',
+  runApp(
+    NeurotchiApp(
+      services: AppServices(
+        repository: SessionRepository(database),
+        rawDir: raw,
+        appVersion: (await PackageInfo.fromPlatform()).version,
+        updateFetch: httpFetch,
+        openUrl: (url) async {
+          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        },
+        exportDir:
+            '${(await getApplicationDocumentsDirectory()).path}/NEUROtchi/eksport',
+      ),
     ),
-  ));
+  );
 }

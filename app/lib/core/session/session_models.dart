@@ -115,7 +115,8 @@ class CalibrationRecord {
     this.reused = false,
   });
 
-  CalibrationRecord withAlpha(double? ratio, double? peakHz) => CalibrationRecord(
+  CalibrationRecord withAlpha(double? ratio, double? peakHz) =>
+      CalibrationRecord(
         attempt,
         durationS,
         result,
@@ -138,8 +139,8 @@ class CalibrationRecord {
   String? get failureReason => result.accepted
       ? null
       : (result.baseline == null && result.validRatio == 0
-          ? 'no_valid_windows'
-          : 'valid_ratio_below_threshold');
+            ? 'no_valid_windows'
+            : 'valid_ratio_below_threshold');
 }
 
 class BlockResult {

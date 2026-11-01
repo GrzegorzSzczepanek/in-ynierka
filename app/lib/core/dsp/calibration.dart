@@ -72,8 +72,12 @@ CalibrationResult calibrate(List<WindowResult> windows, ProcessingConfig cfg) {
     for (final w in windows)
       if (w.tSec - cfg.windowS >= cfg.warmupSkipS) w,
   ];
-  if (used.isEmpty) return const CalibrationResult(accepted: false, validRatio: 0);
-  final xs = [for (final w in used) if (w.valid) w.feature!];
+  if (used.isEmpty)
+    return const CalibrationResult(accepted: false, validRatio: 0);
+  final xs = [
+    for (final w in used)
+      if (w.valid) w.feature!,
+  ];
   final ratio = xs.length / used.length;
   if (xs.isEmpty || ratio < cfg.calibMinValidRatio) {
     return CalibrationResult(accepted: false, validRatio: ratio);

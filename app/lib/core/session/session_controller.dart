@@ -22,8 +22,11 @@ class SessionController {
     this.stored,
     Future<void> Function(Duration)? delay,
   }) : _delay = delay ?? ((d) => Future<void>.delayed(d)) {
-    _pipeline = AlphaPipeline(config.processing,
-        trainingChannels: config.trainingChannels, kind: config.protocol.kind);
+    _pipeline = AlphaPipeline(
+      config.processing,
+      trainingChannels: config.trainingChannels,
+      kind: config.protocol.kind,
+    );
   }
 
   final SourceFactory sourceFactory;
@@ -124,19 +127,21 @@ class SessionController {
     final s = stored;
     if (s == null || !canSkipCalibration) return;
     _calibAttempt++;
-    _calibrations.add(CalibrationRecord(
-      _calibAttempt,
-      0,
-      CalibrationResult(
-        accepted: true,
-        validRatio: 1,
-        baseline: s.baseline,
-        thresholdY: s.thresholdY,
+    _calibrations.add(
+      CalibrationRecord(
+        _calibAttempt,
+        0,
+        CalibrationResult(
+          accepted: true,
+          validRatio: 1,
+          baseline: s.baseline,
+          thresholdY: s.thresholdY,
+        ),
+        alphaRatio: s.alphaRatio,
+        alphaPeakHz: s.alphaPeakHz,
+        reused: true,
       ),
-      alphaRatio: s.alphaRatio,
-      alphaPeakHz: s.alphaPeakHz,
-      reused: true,
-    ));
+    );
     _baseline = s.baseline;
     _threshold = s.thresholdY;
     _alphaRatio = s.alphaRatio;
@@ -180,8 +185,10 @@ class SessionController {
     _setPhase(SessionPhase.connecting);
     final first = await _connect(config.connectAttempts, 0);
     if (first == null) {
-      return _end(_finished ? SessionStatus.interrupted : SessionStatus.connectionLost,
-          _finished ? SessionPhase.interrupted : SessionPhase.deviceSelection);
+      return _end(
+        _finished ? SessionStatus.interrupted : SessionStatus.connectionLost,
+        _finished ? SessionPhase.interrupted : SessionPhase.deviceSelection,
+      );
     }
     var it = first;
     _setPhase(SessionPhase.contactCheck);
@@ -193,15 +200,21 @@ class SessionController {
       }
       if (end == _End.finished) {
         return _end(
-            _finishedWhileLost ? SessionStatus.connectionLost : SessionStatus.interrupted,
-            SessionPhase.interrupted);
+          _finishedWhileLost
+              ? SessionStatus.connectionLost
+              : SessionStatus.interrupted,
+          SessionPhase.interrupted,
+        );
       }
       _tOffset = _nowT;
       final next = await _reconnect();
       if (next == null) {
         return _end(
-            _finishedWhileLost ? SessionStatus.connectionLost : SessionStatus.interrupted,
-            SessionPhase.interrupted);
+          _finishedWhileLost
+              ? SessionStatus.connectionLost
+              : SessionStatus.interrupted,
+          SessionPhase.interrupted,
+        );
       }
       it = next;
       _startCalibration();
@@ -219,11 +232,15 @@ class SessionController {
     );
   }
 
-  Future<StreamIterator<StreamItem>?> _connect(int attempts, double waitS) async {
+  Future<StreamIterator<StreamItem>?> _connect(
+    int attempts,
+    double waitS,
+  ) async {
     for (var a = 1; a <= attempts && !_finished; a++) {
       _attempt = a;
       _emit();
-      if (waitS > 0) await _delay(Duration(milliseconds: (waitS * 1000).round()));
+      if (waitS > 0)
+        await _delay(Duration(milliseconds: (waitS * 1000).round()));
       if (_finished) return null;
       final src = _source = sourceFactory();
       await src.start();
@@ -244,7 +261,10 @@ class SessionController {
   Future<StreamIterator<StreamItem>?> _reconnect() async {
     while (!_finished) {
       _setPhase(SessionPhase.reconnecting);
-      final it = await _connect(config.reconnectAttempts, config.reconnectIntervalS);
+      final it = await _connect(
+        config.reconnectAttempts,
+        config.reconnectIntervalS,
+      );
       if (it != null) return it;
       if (_finished) return null;
       _setPhase(SessionPhase.connectionLost);
@@ -256,7 +276,9 @@ class SessionController {
 
   void _segmentStart(SegmentStart s) {
     _fs = s.info.fs;
-    _trainIdx = [for (final n in config.trainingChannels) s.info.channelIndex(n)];
+    _trainIdx = [
+      for (final n in config.trainingChannels) s.info.channelIndex(n),
+    ];
     _channelNames = [for (final c in s.info.channels) c.name];
     _recentValid.clear();
     _segSamples = 0;
@@ -292,7 +314,9 @@ class SessionController {
     _segSamples += p.length;
     _nowT = _tOffset + _segSamples / _fs;
     final ct = p.contact;
-    _contactNow = ct == null ? null : [for (final ch in ct) ch.isNotEmpty && ch.last];
+    _contactNow = ct == null
+        ? null
+        : [for (final ch in ct) ch.isNotEmpty && ch.last];
     if (_phase == SessionPhase.contactCheck) _checkContact(p);
     for (final w in _pipeline.push(p)) {
       _onWindow(w);
@@ -327,17 +351,20 @@ class SessionController {
     if (_recentValid.length > 20) _recentValid.removeAt(0);
     switch (_phase) {
       case SessionPhase.calibrating:
-        _calibWindows.add(WindowResult(
-          sampleEnd: w.sampleEnd,
-          tSec: t - _phaseStart,
-          valid: w.valid,
-          reason: w.reason,
-          feature: w.feature,
-          peakHz: w.peakHz,
-        ));
+        _calibWindows.add(
+          WindowResult(
+            sampleEnd: w.sampleEnd,
+            tSec: t - _phaseStart,
+            valid: w.valid,
+            reason: w.reason,
+            feature: w.feature,
+            peakHz: w.peakHz,
+          ),
+        );
         final elapsed = t - _phaseStart;
         final enough = _calibValidS >= _calibNeededS;
-        if ((elapsed >= config.calibrationS && enough) || elapsed >= config.calibrationMaxS) {
+        if ((elapsed >= config.calibrationS && enough) ||
+            elapsed >= config.calibrationMaxS) {
           _finishCalibration(t);
         }
       case SessionPhase.calibratingClosed:
@@ -360,26 +387,36 @@ class SessionController {
   /// Wymagany czas wiarygodnego sygnalu: ulamek czasu kroku po odjeciu rozgrzewki.
   double get _calibNeededS {
     final cfg = config.processing;
-    return cfg.calibMinValidRatio * (config.calibrationS - cfg.windowS - cfg.warmupSkipS);
+    return cfg.calibMinValidRatio *
+        (config.calibrationS - cfg.windowS - cfg.warmupSkipS);
   }
 
   /// Czas wiarygodnego sygnalu zebrany w kroku kalibracji (bez rozgrzewki).
   double get _calibValidS {
     final cfg = config.processing;
-    final n = _calibWindows.where((w) => w.valid && w.tSec - cfg.windowS >= cfg.warmupSkipS).length;
+    final n = _calibWindows
+        .where((w) => w.valid && w.tSec - cfg.windowS >= cfg.warmupSkipS)
+        .length;
     return n * config.stepS;
   }
 
   void _finishCalibration(double t) {
     final enough = _calibValidS >= _calibNeededS;
-    final windows = enough ? [for (final w in _calibWindows) if (w.valid) w] : _calibWindows;
+    final windows = enough
+        ? [
+            for (final w in _calibWindows)
+              if (w.valid) w,
+          ]
+        : _calibWindows;
     final result = calibrate(windows, config.processing);
-    _calibrations.add(CalibrationRecord(
-      _calibAttempt,
-      config.calibrationS,
-      result,
-      validSignalS: _calibWindows.where((w) => w.valid).length * config.stepS,
-    ));
+    _calibrations.add(
+      CalibrationRecord(
+        _calibAttempt,
+        config.calibrationS,
+        result,
+        validSignalS: _calibWindows.where((w) => w.valid).length * config.stepS,
+      ),
+    );
     if (!result.accepted) {
       _startCalibration();
       return;
@@ -419,7 +456,9 @@ class SessionController {
     _alphaPeakHz = peak;
     final last = _calibrations.length - 1;
     _calibrations[last] = _calibrations[last].withAlpha(ratio, peak);
-    if (ratio != null && ratio < config.alphaReactivityMin && _closedRepeats < config.maxClosedRepeats) {
+    if (ratio != null &&
+        ratio < config.alphaReactivityMin &&
+        _closedRepeats < config.maxClosedRepeats) {
       _closedRepeats++;
       _startClosed(t);
     } else {
@@ -498,22 +537,24 @@ class SessionController {
 
   void _endBlock(double t) {
     _closeInvalid(((t - _blockStart) * 1000).round());
-    _blocks.add(BlockResult(
-      blockNo: _blockNo,
-      calibrationAttempt: _calibAttempt,
-      plannedS: config.blockS,
-      actualS: t - _blockStart,
-      threshold: _threshold!,
-      validSignalS: _validS,
-      timeAboveThresholdS: _aboveS,
-      rewardCount: _rewards,
-      events: _events,
-      invalid: _invalid,
-      meanY: _yN > 0 ? _ySum / _yN : 0.5,
-      yTrace: [..._trace, if (_binN > 0) _binSum / _binN],
-      windowsTotal: _winTotal,
-      windowsInvalid: _winInvalid,
-    ));
+    _blocks.add(
+      BlockResult(
+        blockNo: _blockNo,
+        calibrationAttempt: _calibAttempt,
+        plannedS: config.blockS,
+        actualS: t - _blockStart,
+        threshold: _threshold!,
+        validSignalS: _validS,
+        timeAboveThresholdS: _aboveS,
+        rewardCount: _rewards,
+        events: _events,
+        invalid: _invalid,
+        meanY: _yN > 0 ? _ySum / _yN : 0.5,
+        yTrace: [..._trace, if (_binN > 0) _binSum / _binN],
+        windowsTotal: _winTotal,
+        windowsInvalid: _winInvalid,
+      ),
+    );
     if (_blockNo >= config.blocks) {
       _done = true;
     } else {
@@ -531,7 +572,9 @@ class SessionController {
   /// Postep kroku; w kalibracji liczy sie tylko wiarygodny sygnal, wiec
   /// pasek zwalnia, gdy sygnal jest zly.
   double get _phaseProgressS {
-    final elapsed = ((_paused ? _pauseStartT : _nowT) - _phaseStart).clamp(0, double.infinity).toDouble();
+    final elapsed = ((_paused ? _pauseStartT : _nowT) - _phaseStart)
+        .clamp(0, double.infinity)
+        .toDouble();
     if (_phase != SessionPhase.calibrating) return elapsed;
     final scaled = _calibValidS / _calibNeededS * config.calibrationS;
     return elapsed < scaled ? elapsed : scaled;

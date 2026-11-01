@@ -36,7 +36,9 @@ class _ConnectionCheckScreenState extends State<ConnectionCheckScreen> {
 
   void _start() {
     final services = ServicesScope.of(context);
-    final monitor = _monitor = ConnectionMonitor(services.sourceFactoryFor(widget.protocol));
+    final monitor = _monitor = ConnectionMonitor(
+      services.sourceFactoryFor(widget.protocol),
+    );
     _sub = monitor.states.listen((s) {
       if (mounted) setState(() => _state = s);
     });
@@ -84,11 +86,18 @@ class _ConnectionCheckScreenState extends State<ConnectionCheckScreen> {
     );
     return ConnectionScreen(
       snapshot: snapshot,
-      trainingChannels: ServicesScope.of(context).sessionConfigFor(widget.protocol).trainingChannels,
+      trainingChannels: ServicesScope.of(context)
+          .sessionConfigFor(widget.protocol)
+          .trainingChannels,
       maxAttempts: 3,
-      onUseContactChannels: s.contact == null ? null : () => _useContactChannels(s.contact!),
+      onUseContactChannels: s.contact == null
+          ? null
+          : () => _useContactChannels(s.contact!),
       onFinish: () => Navigator.of(context).pop(),
-      onRetry: s.status == MonitorStatus.lost || s.status == MonitorStatus.failed ? _retry : null,
+      onRetry:
+          s.status == MonitorStatus.lost || s.status == MonitorStatus.failed
+          ? _retry
+          : null,
     );
   }
 }

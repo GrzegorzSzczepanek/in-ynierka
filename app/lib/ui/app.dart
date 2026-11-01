@@ -21,14 +21,14 @@ class NeurotchiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ServicesScope(
-        services: services,
-        child: MaterialApp(
-          title: 'NEUROtchi',
-          debugShowCheckedModeBanner: false,
-          theme: Px.theme,
-          home: const _HomeRoute(),
-        ),
-      );
+    services: services,
+    child: MaterialApp(
+      title: 'NEUROtchi',
+      debugShowCheckedModeBanner: false,
+      theme: Px.theme,
+      home: const _HomeRoute(),
+    ),
+  );
 }
 
 class _HomeRoute extends StatefulWidget {
@@ -56,8 +56,14 @@ class _HomeRouteState extends State<_HomeRoute> {
   /// Po cichu sprawdza GitHub; blad sieci nie przeszkadza w pracy z aplikacja.
   Future<void> _checkUpdate() async {
     final services = ServicesScope.of(context);
-    final info = await services.checkForUpdate().then<UpdateInfo?>((v) => v).catchError((_) => null);
-    if (!mounted || info == null || info.version == services.settings.skippedVersion) return;
+    final info = await services
+        .checkForUpdate()
+        .then<UpdateInfo?>((v) => v)
+        .catchError((_) => null);
+    if (!mounted ||
+        info == null ||
+        info.version == services.settings.skippedVersion)
+      return;
     final choice = await showUpdateDialog(context, info, services.appVersion);
     switch (choice) {
       case UpdateChoice.download:
@@ -71,7 +77,8 @@ class _HomeRouteState extends State<_HomeRoute> {
   }
 
   Future<void> _open(Widget screen) async {
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => screen));
     if (mounted) setState(() {});
   }
 
@@ -92,13 +99,15 @@ class _HomeRouteState extends State<_HomeRoute> {
       onCalibration: () => _open(_CalibrationRoute(protocol: _selected)),
       onResearch: () => _open(ResearchScreen(protocol: _selected)),
       onSettings: () => _open(const SettingsScreen()),
-      onProgress: () => _open(Builder(
-        builder: (ctx) => ProgressScreen(
-          data: progressData(services.repository, DateTime.now()),
-          todayIndex: DateTime.now().weekday - 1,
-          onBack: () => Navigator.of(ctx).pop(),
+      onProgress: () => _open(
+        Builder(
+          builder: (ctx) => ProgressScreen(
+            data: progressData(services.repository, DateTime.now()),
+            todayIndex: DateTime.now().weekday - 1,
+            onBack: () => Navigator.of(ctx).pop(),
+          ),
         ),
-      )),
+      ),
     );
   }
 }
@@ -122,9 +131,14 @@ class _CalibrationRouteState extends State<_CalibrationRoute> {
       stored: services.repository.lastCalibration(widget.protocol),
       onBack: () => Navigator.of(context).pop(),
       onCalibrate: () async {
-        await Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => SessionFlowScreen(protocol: widget.protocol, calibrationOnly: true),
-        ));
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SessionFlowScreen(
+              protocol: widget.protocol,
+              calibrationOnly: true,
+            ),
+          ),
+        );
         if (mounted) setState(() {});
       },
     );

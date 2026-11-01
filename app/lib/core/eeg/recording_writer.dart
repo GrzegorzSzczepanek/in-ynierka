@@ -22,13 +22,15 @@ class RecordingWriter {
         File('$basePath.json').writeAsStringSync(jsonEncode(meta));
         _csv = File('$basePath.csv').openWrite()
           ..writeln(
-              'sample_number,${item.info.channels.map((c) => c.name).join(',')}');
+            'sample_number,${item.info.channels.map((c) => c.name).join(',')}',
+          );
       case EegPacket():
         final csv = _csv;
         if (csv == null) throw StateError('Brak SegmentStart');
         for (var i = 0; i < item.length; i++) {
           csv.writeln(
-              '${item.firstSample + i},${[for (final ch in item.samples) ch[i]].join(',')}');
+            '${item.firstSample + i},${[for (final ch in item.samples) ch[i]].join(',')}',
+          );
         }
         samples += item.length;
       case GapEvent():

@@ -136,7 +136,10 @@ class AlphaPipeline {
   List<WindowResult> _packet(EegPacket p) {
     final out = <WindowResult>[];
     final t = timings;
-    if (t != null) _sw..reset()..start();
+    if (t != null)
+      _sw
+        ..reset()
+        ..start();
     for (var i = 0; i < p.length; i++) {
       for (var c = 0; c < _idx.length; c++) {
         final r = p.samples[_idx[c]][i];
@@ -153,7 +156,10 @@ class AlphaPipeline {
           (_count - _windowSamples) % config.stepSamples == 0) {
         if (t != null) _filterAcc += _sw.elapsedMicroseconds;
         out.add(_evaluate());
-        if (t != null) _sw..reset()..start();
+        if (t != null)
+          _sw
+            ..reset()
+            ..start();
       }
     }
     if (t != null) _filterAcc += _sw.elapsedMicroseconds;
@@ -170,7 +176,12 @@ class AlphaPipeline {
     final t = end / _fs;
     if (reason != null) {
       _record(qualityUs, 0, total);
-      return WindowResult(sampleEnd: end, tSec: t, valid: false, reason: reason);
+      return WindowResult(
+        sampleEnd: end,
+        tSec: t,
+        valid: false,
+        reason: reason,
+      );
     }
     final welch0 = total.elapsedMicroseconds;
     var sum = 0.0;
@@ -183,7 +194,11 @@ class AlphaPipeline {
           acc[k] += psd[k];
         }
       }
-      final alpha = _welch.bandPower(psd, config.alphaLowHz, config.alphaHighHz);
+      final alpha = _welch.bandPower(
+        psd,
+        config.alphaLowHz,
+        config.alphaHighHz,
+      );
       switch (kind) {
         case FeatureKind.alphaPower:
           sum += log((alpha + config.eps) / config.p0);
@@ -248,7 +263,11 @@ class AlphaPipeline {
     }
     for (final f in _filt) {
       final psd = _welch.psd(f);
-      final total = _welch.bandPower(psd, config.filterLowHz, config.filterHighHz);
+      final total = _welch.bandPower(
+        psd,
+        config.filterLowHz,
+        config.filterHighHz,
+      );
       final hf = _welch.bandPower(psd, 30, config.filterHighHz);
       if (total > 0 && hf / total > config.hfRatioThreshold) {
         return InvalidReason.muscle;

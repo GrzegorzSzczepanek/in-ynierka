@@ -45,7 +45,10 @@ String _cString(Pointer<Uint8> p) {
 }
 
 typedef BaChunkCallback = Void Function(
-    Pointer<Pointer<Void>>, Size, Pointer<Void>);
+  Pointer<Pointer<Void>>,
+  Size,
+  Pointer<Void>,
+);
 typedef BaVoidCallback = Void Function(Pointer<Void>);
 
 typedef _MallocN = Pointer<Void> Function(Size);
@@ -61,92 +64,126 @@ class BaCore {
 
   final DynamicLibrary _lib;
 
-  late final int Function() coreInit =
-      _lib.lookupFunction<Uint8 Function(), int Function()>('ba_core_init');
-  late final int Function() coreClose =
-      _lib.lookupFunction<Uint8 Function(), int Function()>('ba_core_close');
-  late final Pointer<BaVersion> Function() coreVersion = _lib.lookupFunction<
-      Pointer<BaVersion> Function(),
-      Pointer<BaVersion> Function()>('ba_core_get_version');
+  late final int Function() coreInit = _lib
+      .lookupFunction<Uint8 Function(), int Function()>('ba_core_init');
+  late final int Function() coreClose = _lib
+      .lookupFunction<Uint8 Function(), int Function()>('ba_core_close');
+  late final Pointer<BaVersion> Function() coreVersion = _lib
+      .lookupFunction<
+        Pointer<BaVersion> Function(),
+        Pointer<BaVersion> Function()
+      >('ba_core_get_version');
 
-  late final Pointer<Void> Function() managerNew = _lib.lookupFunction<
-      Pointer<Void> Function(),
-      Pointer<Void> Function()>('ba_eeg_manager_new');
-  late final void Function(Pointer<Void>) managerFree = _lib.lookupFunction<
-      Void Function(Pointer<Void>),
-      void Function(Pointer<Void>)>('ba_eeg_manager_free');
-  late final int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>,
-      Pointer<Void>) _connect = _lib.lookupFunction<
-      Uint8 Function(Pointer<Void>, Pointer<Void>, Pointer<Void>,
-          Pointer<Void>),
-      int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>,
-          Pointer<Void>)>('ba_eeg_manager_connect');
-  late final void Function(Pointer<Void>) disconnect = _lib.lookupFunction<
-      Void Function(Pointer<Void>),
-      void Function(Pointer<Void>)>('ba_eeg_manager_disconnect');
-  late final int Function(Pointer<Void>) _isConnected = _lib.lookupFunction<
-      Uint8 Function(Pointer<Void>),
-      int Function(Pointer<Void>)>('ba_eeg_manager_is_connected');
+  late final Pointer<Void> Function() managerNew = _lib
+      .lookupFunction<Pointer<Void> Function(), Pointer<Void> Function()>(
+        'ba_eeg_manager_new',
+      );
+  late final void Function(Pointer<Void>) managerFree = _lib
+      .lookupFunction<
+        Void Function(Pointer<Void>),
+        void Function(Pointer<Void>)
+      >('ba_eeg_manager_free');
+  late final int Function(
+    Pointer<Void>,
+    Pointer<Void>,
+    Pointer<Void>,
+    Pointer<Void>,
+  )
+  _connect = _lib
+      .lookupFunction<
+        Uint8 Function(
+          Pointer<Void>,
+          Pointer<Void>,
+          Pointer<Void>,
+          Pointer<Void>,
+        ),
+        int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>, Pointer<Void>)
+      >('ba_eeg_manager_connect');
+  late final void Function(Pointer<Void>) disconnect = _lib
+      .lookupFunction<
+        Void Function(Pointer<Void>),
+        void Function(Pointer<Void>)
+      >('ba_eeg_manager_disconnect');
+  late final int Function(Pointer<Void>) _isConnected = _lib
+      .lookupFunction<
+        Uint8 Function(Pointer<Void>),
+        int Function(Pointer<Void>)
+      >('ba_eeg_manager_is_connected');
   late final int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
-      startStream = _lib.lookupFunction<
-          Uint8 Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
-          int Function(Pointer<Void>, Pointer<Void>,
-              Pointer<Void>)>('ba_eeg_manager_start_stream');
+  startStream = _lib
+      .lookupFunction<
+        Uint8 Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
+        int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
+      >('ba_eeg_manager_start_stream');
   late final int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
-      stopStream = _lib.lookupFunction<
-          Uint8 Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
-          int Function(Pointer<Void>, Pointer<Void>,
-              Pointer<Void>)>('ba_eeg_manager_stop_stream');
+  stopStream = _lib
+      .lookupFunction<
+        Uint8 Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
+        int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
+      >('ba_eeg_manager_stop_stream');
   late final int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
-      loadConfig = _lib.lookupFunction<
-          Uint8 Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
-          int Function(Pointer<Void>, Pointer<Void>,
-              Pointer<Void>)>('ba_eeg_manager_load_config');
-  late final void Function(Pointer<Void>, int, bool) setChannelEnabled =
-      _lib.lookupFunction<Void Function(Pointer<Void>, Uint16, Bool),
-          void Function(Pointer<Void>, int, bool)>(
-      'ba_eeg_manager_set_channel_enabled');
-  late final void Function(Pointer<Void>, int) setChannelBiasFeedback =
-      _lib.lookupFunction<Void Function(Pointer<Void>, Uint16),
-          void Function(Pointer<Void>, int)>(
-      'ba_eeg_manager_set_channel_bias_feedback');
-  late final int Function(Pointer<Void>, int) setDataStreamRate =
-      _lib.lookupFunction<Uint8 Function(Pointer<Void>, Uint8),
-          int Function(Pointer<Void>, int)>(
-      'ba_eeg_manager_set_data_stream_rate');
-  late final int Function(Pointer<Void>, int) channelIndex =
-      _lib.lookupFunction<Size Function(Pointer<Void>, Uint16),
-          int Function(Pointer<Void>, int)>(
-      'ba_eeg_manager_get_channel_index');
-  late final Pointer<BaDeviceInfo> Function(Pointer<Void>) deviceInfo =
-      _lib.lookupFunction<Pointer<BaDeviceInfo> Function(Pointer<Void>),
-          Pointer<BaDeviceInfo> Function(Pointer<Void>)>(
-      'ba_eeg_manager_get_device_info');
+  loadConfig = _lib
+      .lookupFunction<
+        Uint8 Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
+        int Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
+      >('ba_eeg_manager_load_config');
+  late final void Function(Pointer<Void>, int, bool) setChannelEnabled = _lib
+      .lookupFunction<
+        Void Function(Pointer<Void>, Uint16, Bool),
+        void Function(Pointer<Void>, int, bool)
+      >('ba_eeg_manager_set_channel_enabled');
+  late final void Function(Pointer<Void>, int) setChannelBiasFeedback = _lib
+      .lookupFunction<
+        Void Function(Pointer<Void>, Uint16),
+        void Function(Pointer<Void>, int)
+      >('ba_eeg_manager_set_channel_bias_feedback');
+  late final int Function(Pointer<Void>, int) setDataStreamRate = _lib
+      .lookupFunction<
+        Uint8 Function(Pointer<Void>, Uint8),
+        int Function(Pointer<Void>, int)
+      >('ba_eeg_manager_set_data_stream_rate');
+  late final int Function(Pointer<Void>, int) channelIndex = _lib
+      .lookupFunction<
+        Size Function(Pointer<Void>, Uint16),
+        int Function(Pointer<Void>, int)
+      >('ba_eeg_manager_get_channel_index');
+  late final Pointer<BaDeviceInfo> Function(Pointer<Void>) deviceInfo = _lib
+      .lookupFunction<
+        Pointer<BaDeviceInfo> Function(Pointer<Void>),
+        Pointer<BaDeviceInfo> Function(Pointer<Void>)
+      >('ba_eeg_manager_get_device_info');
   late final void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
-      setCallbackChunk = _lib.lookupFunction<
-          Void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
-          void Function(Pointer<Void>, Pointer<Void>,
-              Pointer<Void>)>('ba_eeg_manager_set_callback_chunk');
+  setCallbackChunk = _lib
+      .lookupFunction<
+        Void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
+        void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
+      >('ba_eeg_manager_set_callback_chunk');
   late final void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
-      setCallbackDisconnect = _lib.lookupFunction<
-          Void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
-          void Function(Pointer<Void>, Pointer<Void>,
-              Pointer<Void>)>('ba_eeg_manager_set_callback_disconnect');
-  late final Pointer<Void> Function(Pointer<BaDeviceInfo>) _featuresGet =
-      _lib.lookupFunction<Pointer<Void> Function(Pointer<BaDeviceInfo>),
-          Pointer<Void> Function(Pointer<BaDeviceInfo>)>(
-      'ba_core_device_features_get');
-  late final int Function(Pointer<Void>) _electrodeCount = _lib.lookupFunction<
-      Uint8 Function(Pointer<Void>),
-      int Function(Pointer<Void>)>('ba_core_device_features_electrode_count');
+  setCallbackDisconnect = _lib
+      .lookupFunction<
+        Void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>),
+        void Function(Pointer<Void>, Pointer<Void>, Pointer<Void>)
+      >('ba_eeg_manager_set_callback_disconnect');
+  late final Pointer<Void> Function(Pointer<BaDeviceInfo>) _featuresGet = _lib
+      .lookupFunction<
+        Pointer<Void> Function(Pointer<BaDeviceInfo>),
+        Pointer<Void> Function(Pointer<BaDeviceInfo>)
+      >('ba_core_device_features_get');
+  late final int Function(Pointer<Void>) _electrodeCount = _lib
+      .lookupFunction<
+        Uint8 Function(Pointer<Void>),
+        int Function(Pointer<Void>)
+      >('ba_core_device_features_electrode_count');
 
   static final _libc = DynamicLibrary.process();
   static final _malloc = _libc.lookupFunction<_MallocN, _Malloc>('malloc');
   static final _free = _libc.lookupFunction<_FreeN, _Free>('free');
 
   late final int Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>) _scan =
-      _lib.lookupFunction<Uint8 Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>),
-          int Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>)>('ba_core_scan');
+      _lib.lookupFunction<
+        Uint8 Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>),
+        int Function(Pointer<Pointer<BaBleDevice>>, Pointer<Size>)
+      >('ba_core_scan');
 
   /// Skanuje BLE (ok. 5 s, wymaga uprawnienia Bluetooth) i zwraca nazwy czepkow BrainAccess.
   List<String> scanNames() {
@@ -157,7 +194,8 @@ class BaCore {
       final err = _scan(devs, count);
       if (err != 0) throw StateError('Skan BLE nie powiodl sie (kod $err)');
       return [
-        for (var i = 0; i < count.value; i++) _cString((devs.value + i).ref.name),
+        for (var i = 0; i < count.value; i++)
+          _cString((devs.value + i).ref.name),
       ];
     } finally {
       _free(devs.cast());
