@@ -117,10 +117,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String status;
     try {
       final info = await services.checkForUpdate();
-      status = info == null ? 'Masz najnowszą wersję (${services.appVersion}).' : 'Dostępna nowa wersja ${info.version}.';
-      if (info != null) await services.openUrl?.call(info.assetUrl ?? info.pageUrl);
+      status = info == null
+          ? 'Masz najnowszą wersję (${services.appVersion}).'
+          : 'Dostępna nowa wersja ${info.version}.';
+      if (info != null)
+        await services.openUrl?.call(info.assetUrl ?? info.pageUrl);
     } catch (e) {
-      status = 'Nie udało się sprawdzić: $e. Repozytorium prywatne wymaga tokena.';
+      status =
+          'Nie udało się sprawdzić: $e. Repozytorium prywatne wymaga tokena.';
     }
     if (!mounted) return;
     setState(() {
@@ -149,203 +153,119 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final device = _s.source == SourceKind.device;
     final lib = findBacoreLib(override: _s.libPath);
     final names = device ? _s.channelNames : _demoChannels;
-    return ScreenFrame(
-      footer: true,
-      child: ListView(
-        children: [
-          Row(
-            children: [
-              PkBack(onPressed: () => Navigator.of(context).pop()),
-              const SizedBox(width: 12),
-              Expanded(child: Text('USTAWIENIA', style: Px.t(20, height: 1.3, shadow: true))),
-              AnimatedOpacity(
-                opacity: _saved ? 1 : 0,
-                duration: const Duration(milliseconds: 150),
-                child: Text('ZAPISANO ✓', style: Px.t(9, color: Px.accent, height: 1)),
-              ),
-            ],
+    // Układ desktopowy (dwie kolumny od 900 dp) napisany z pomocą AI (Claude).
+    final wide = isWideLayout(context);
+    final header = Row(
+      children: [
+        PkBack(onPressed: () => Navigator.of(context).pop()),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'USTAWIENIA',
+            style: Px.t(wide ? 24 : 20, height: 1.3, shadow: true),
           ),
-          const SizedBox(height: 14),
-          Text('ŹRÓDŁO SYGNAŁU', style: Px.t(10)),
-          const SizedBox(height: 6),
-          PkMenu(
-            rows: [
-              PkMenuRow(
-                label: 'DEMO',
-                sub: 'sygnał symulowany, bez czepka',
-                selected: !device,
-                onTap: () {
-                  _s.source = SourceKind.demo;
-                  _save();
-                },
-              ),
-              PkMenuRow(
-                label: 'CZEPEK BRAINACCESS',
-                sub: 'prawdziwy sygnał przez Bluetooth',
-                selected: device,
-                onTap: () {
-                  _s.source = SourceKind.device;
-                  _save();
-                },
-              ),
-            ],
+        ),
+        AnimatedOpacity(
+          opacity: _saved ? 1 : 0,
+          duration: const Duration(milliseconds: 150),
+          child: Text(
+            'ZAPISANO ✓',
+            style: Px.t(9, color: Px.accent, height: 1),
           ),
-          if (device) ...[
-            const SizedBox(height: 14),
-            Text('CZEPEK', style: Px.t(10)),
-            const SizedBox(height: 6),
-            PkLeader(
-              'Wybrany',
-              _s.deviceName.isEmpty ? 'brak' : _s.deviceName,
-              bold: true,
+        ),
+      ],
+    );
+    final left = <Widget>[
+      Text('ŹRÓDŁO SYGNAŁU', style: Px.t(10)),
+      const SizedBox(height: 6),
+      PkMenu(
+        rows: [
+          PkMenuRow(
+            label: 'DEMO',
+            sub: 'sygnał symulowany, bez czepka',
+            selected: !device,
+            onTap: () {
+              _s.source = SourceKind.demo;
+              _save();
+            },
+          ),
+          PkMenuRow(
+            label: 'CZEPEK BRAINACCESS',
+            sub: 'prawdziwy sygnał przez Bluetooth',
+            selected: device,
+            onTap: () {
+              _s.source = SourceKind.device;
+              _save();
+            },
+          ),
+        ],
+      ),
+      if (device) ...[
+        const SizedBox(height: 14),
+        Text('CZEPEK', style: Px.t(10)),
+        const SizedBox(height: 6),
+        PkLeader(
+          'Wybrany',
+          _s.deviceName.isEmpty ? 'brak' : _s.deviceName,
+          bold: true,
+        ),
+        if (_needsLib) ...[
+          PkLeader(
+            'Biblioteka SDK',
+            lib == null ? 'nie znaleziono' : 'znaleziona',
+          ),
+          if (lib != null) Text(lib, style: Px.tiny),
+        ],
+        const SizedBox(height: 8),
+        PkAction(
+          label: _scanning ? 'SZUKAM CZEPKA…' : 'SZUKAJ CZEPKA',
+          onTap: _scanning ? null : _scan,
+          primary: _s.deviceName.isEmpty,
+        ),
+        if (_scanning)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Skan trwa ok. 5 s. Włącz czepek i trzymaj go blisko.',
+              style: Px.tiny,
             ),
-            if (_needsLib) ...[
-              PkLeader(
-                'Biblioteka SDK',
-                lib == null ? 'nie znaleziono' : 'znaleziona',
-              ),
-              if (lib != null) Text(lib, style: Px.tiny),
-            ],
-            const SizedBox(height: 8),
-            PkAction(
-              label: _scanning ? 'SZUKAM CZEPKA…' : 'SZUKAJ CZEPKA',
-              onTap: _scanning ? null : _scan,
-              primary: _s.deviceName.isEmpty,
-            ),
-            if (_scanning)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  'Skan trwa ok. 5 s. Włącz czepek i trzymaj go blisko.',
-                  style: Px.tiny,
-                ),
-              ),
-            if (_found != null) ...[
-              const SizedBox(height: 8),
-              if (_found!.isEmpty)
-                Text(
-                  'Nie znaleziono czepka. Włącz go i spróbuj jeszcze raz.',
-                  style: Px.small,
-                )
-              else
-                PkMenu(
-                  rows: [
-                    for (final n in _found!)
-                      PkMenuRow(
-                        label: n,
-                        selected: n == _s.deviceName,
-                        onTap: () {
-                          _s.deviceName = n;
-                          _save();
-                        },
-                      ),
-                  ],
-                ),
-            ],
-            if (_scanError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(_scanError!, style: Px.t(8, color: Px.danger)),
-              ),
-            if (_needsLib) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Ścieżka libbacore (puste: szukam automatycznie)',
-                style: Px.tiny,
-              ),
-              const SizedBox(height: 4),
-              TextField(
-                controller: _lib,
-                style: Px.t(9, height: 1.4),
-                decoration: const InputDecoration(
-                  isDense: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.zero),
-                  filled: true,
-                  fillColor: Px.panel,
-                ),
-                onChanged: (v) {
-                  _s.libPath = v.trim();
-                  _s.save(ServicesScope.of(context).repository);
-                },
-                onSubmitted: (_) => setState(() {}),
-              ),
-            ],
-            const SizedBox(height: 14),
-            Text('NAZWY KANAŁÓW', style: Px.t(10)),
-            const SizedBox(height: 6),
+          ),
+        if (_found != null) ...[
+          const SizedBox(height: 8),
+          if (_found!.isEmpty)
+            Text(
+              'Nie znaleziono czepka. Włącz go i spróbuj jeszcze raz.',
+              style: Px.small,
+            )
+          else
             PkMenu(
               rows: [
-                PkMenuRow(
-                  label: 'WG TABELI PRODUCENTA',
-                  sub: 'O1, O2, Pz... (MAXI, niepotwierdzone pomiarem)',
-                  selected: _s.naming == ChannelNaming.manufacturer,
-                  onTap: () {
-                    _s.naming = ChannelNaming.manufacturer;
-                    _s.training.clear();
-                    _save();
-                  },
-                ),
-                PkMenuRow(
-                  label: 'NUMERY',
-                  sub: 'ch1 ... ch32, bez mapy głowy',
-                  selected: _s.naming == ChannelNaming.numbered,
-                  onTap: () {
-                    _s.naming = ChannelNaming.numbered;
-                    _s.training.clear();
-                    _save();
-                  },
-                ),
+                for (final n in _found!)
+                  PkMenuRow(
+                    label: n,
+                    selected: n == _s.deviceName,
+                    onTap: () {
+                      _s.deviceName = n;
+                      _save();
+                    },
+                  ),
               ],
             ),
-          ],
-          const SizedBox(height: 14),
-          Text('TRENING', style: Px.t(10)),
-          const SizedBox(height: 6),
-          PkMenu(
-            rows: [
-              PkMenuRow(
-                label: 'INSTRUKCJA PRZED TRENINGIEM',
-                sub: _s.showInstruction ? 'pokazuję przy każdym starcie' : 'pomijam, start od razu',
-                trailing: _s.showInstruction ? 'WŁ' : 'WYŁ',
-                selected: _s.showInstruction,
-                onTap: () {
-                  _s.showInstruction = !_s.showInstruction;
-                  _save();
-                },
-              ),
-            ],
+        ],
+        if (_scanError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(_scanError!, style: Px.t(8, color: Px.danger)),
           ),
-          const SizedBox(height: 14),
-          Text('AKTUALIZACJE', style: Px.t(10)),
-          const SizedBox(height: 6),
-          PkMenu(
-            rows: [
-              PkMenuRow(
-                label: 'SPRAWDZAJ PRZY STARCIE',
-                sub: 'pytam o pobranie, gdy jest nowa wersja',
-                trailing: _s.checkUpdates ? 'WŁ' : 'WYŁ',
-                selected: _s.checkUpdates,
-                onTap: () {
-                  _s.checkUpdates = !_s.checkUpdates;
-                  _save();
-                },
-              ),
-            ],
-          ),
+        if (_needsLib) ...[
           const SizedBox(height: 8),
-          PkAction(
-            label: _checkingUpdate ? 'SPRAWDZAM…' : 'SPRAWDŹ TERAZ',
-            primary: false,
-            onTap: _checkingUpdate || !ServicesScope.of(context).updatesAvailable ? null : _checkNow,
+          Text(
+            'Ścieżka libbacore (puste: szukam automatycznie)',
+            style: Px.tiny,
           ),
-          if (_updateStatus != null)
-            Padding(padding: const EdgeInsets.only(top: 6), child: Text(_updateStatus!, style: Px.tiny)),
-          const SizedBox(height: 6),
-          Text('Token GitHub (tylko dla prywatnego repozytorium, prawo odczytu)', style: Px.tiny),
           const SizedBox(height: 4),
           TextField(
-            controller: _token,
-            obscureText: true,
+            controller: _lib,
             style: Px.t(9, height: 1.4),
             decoration: const InputDecoration(
               isDense: true,
@@ -354,47 +274,182 @@ class _SettingsScreenState extends State<SettingsScreen> {
               fillColor: Px.panel,
             ),
             onChanged: (v) {
-              _s.updateToken = v.trim();
+              _s.libPath = v.trim();
               _s.save(ServicesScope.of(context).repository);
             },
+            onSubmitted: (_) => setState(() {}),
           ),
-          const SizedBox(height: 14),
-          Text('KANAŁY TRENINGOWE', style: Px.t(10)),
-          Text(
-            'Wybierz kanały z kontaktem. Puste = domyślne protokołu.',
-            style: Px.tiny,
-          ),
-          for (final p in TrainingProtocol.all) ...[
-            const SizedBox(height: 8),
-            Text(
-              '${p.title.toUpperCase()}: ${_s.trainingChannelsFor(p).join(' ')}',
-              style: Px.t(9),
+        ],
+        const SizedBox(height: 14),
+        Text('NAZWY KANAŁÓW', style: Px.t(10)),
+        const SizedBox(height: 6),
+        PkMenu(
+          rows: [
+            PkMenuRow(
+              label: 'WG TABELI PRODUCENTA',
+              sub: 'O1, O2, Pz... (MAXI, niepotwierdzone pomiarem)',
+              selected: _s.naming == ChannelNaming.manufacturer,
+              onTap: () {
+                _s.naming = ChannelNaming.manufacturer;
+                _s.training.clear();
+                _save();
+              },
             ),
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 5,
-              runSpacing: 5,
-              children: [
-                for (final n in names)
-                  _Chip(
-                    label:
-                        device && _s.effectiveNaming == ChannelNaming.numbered
-                        ? n.replaceFirst('ch', '')
-                        : n,
-                    on: _s.trainingChannelsFor(p).contains(n),
-                    onTap: () => _toggle(p, n),
-                  ),
-              ],
+            PkMenuRow(
+              label: 'NUMERY',
+              sub: 'ch1 ... ch32, bez mapy głowy',
+              selected: _s.naming == ChannelNaming.numbered,
+              onTap: () {
+                _s.naming = ChannelNaming.numbered;
+                _s.training.clear();
+                _save();
+              },
             ),
           ],
-          const SizedBox(height: 10),
-          Text(
-            'Zmiany zapisują się od razu (widać to przy napisie ZAPISANO). Aktywną masę (BIAS) ustawiam automatycznie na dwóch pierwszych kanałach treningowych.',
-            style: Px.tiny,
+        ),
+      ],
+    ];
+    final right = <Widget>[
+      Text('TRENING', style: Px.t(10)),
+      const SizedBox(height: 6),
+      PkMenu(
+        rows: [
+          PkMenuRow(
+            label: 'INSTRUKCJA PRZED TRENINGIEM',
+            sub: _s.showInstruction
+                ? 'pokazuję przy każdym starcie'
+                : 'pomijam, start od razu',
+            trailing: _s.showInstruction ? 'WŁ' : 'WYŁ',
+            selected: _s.showInstruction,
+            onTap: () {
+              _s.showInstruction = !_s.showInstruction;
+              _save();
+            },
           ),
-          const SizedBox(height: 8),
+          // Tryb testowy (dodane z pomocą AI, Claude).
+          PkMenuRow(
+            label: 'KRÓTKI TRYB TESTOWY',
+            sub: _s.quickSession
+                ? 'około 2 min: 2 bloki po 30 s'
+                : 'pełna sesja około 12 min',
+            trailing: _s.quickSession ? 'WŁ' : 'WYŁ',
+            selected: _s.quickSession,
+            onTap: () {
+              _s.quickSession = !_s.quickSession;
+              _save();
+            },
+          ),
         ],
       ),
+      const SizedBox(height: 14),
+      Text('AKTUALIZACJE', style: Px.t(10)),
+      const SizedBox(height: 6),
+      PkMenu(
+        rows: [
+          PkMenuRow(
+            label: 'SPRAWDZAJ PRZY STARCIE',
+            sub: 'pytam o pobranie, gdy jest nowa wersja',
+            trailing: _s.checkUpdates ? 'WŁ' : 'WYŁ',
+            selected: _s.checkUpdates,
+            onTap: () {
+              _s.checkUpdates = !_s.checkUpdates;
+              _save();
+            },
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      PkAction(
+        label: _checkingUpdate ? 'SPRAWDZAM…' : 'SPRAWDŹ TERAZ',
+        primary: false,
+        onTap: _checkingUpdate || !ServicesScope.of(context).updatesAvailable
+            ? null
+            : _checkNow,
+      ),
+      if (_updateStatus != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(_updateStatus!, style: Px.tiny),
+        ),
+      const SizedBox(height: 6),
+      Text(
+        'Token GitHub (tylko dla prywatnego repozytorium, prawo odczytu)',
+        style: Px.tiny,
+      ),
+      const SizedBox(height: 4),
+      TextField(
+        controller: _token,
+        obscureText: true,
+        style: Px.t(9, height: 1.4),
+        decoration: const InputDecoration(
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+          filled: true,
+          fillColor: Px.panel,
+        ),
+        onChanged: (v) {
+          _s.updateToken = v.trim();
+          _s.save(ServicesScope.of(context).repository);
+        },
+      ),
+      const SizedBox(height: 14),
+      Text('KANAŁY TRENINGOWE', style: Px.t(10)),
+      Text(
+        'Wybierz kanały z kontaktem. Puste = domyślne protokołu.',
+        style: Px.tiny,
+      ),
+      for (final p in TrainingProtocol.all) ...[
+        const SizedBox(height: 8),
+        Text(
+          '${p.title.toUpperCase()}: ${_s.trainingChannelsFor(p).join(' ')}',
+          style: Px.t(9),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 5,
+          runSpacing: 5,
+          children: [
+            for (final n in names)
+              _Chip(
+                label: device && _s.effectiveNaming == ChannelNaming.numbered
+                    ? n.replaceFirst('ch', '')
+                    : n,
+                on: _s.trainingChannelsFor(p).contains(n),
+                onTap: () => _toggle(p, n),
+              ),
+          ],
+        ),
+      ],
+      const SizedBox(height: 10),
+      Text(
+        'Zmiany zapisują się od razu (widać to przy napisie ZAPISANO). Aktywną masę (BIAS) ustawiam automatycznie na dwóch pierwszych kanałach treningowych.',
+        style: Px.tiny,
+      ),
+    ];
+    return ScreenFrame(
+      wide: wide,
+      footer: true,
+      child: wide
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                header,
+                const SizedBox(height: 16),
+                Expanded(
+                  child: PkTwoPane(left: left, right: right),
+                ),
+              ],
+            )
+          : ListView(
+              children: [
+                header,
+                const SizedBox(height: 14),
+                ...left,
+                const SizedBox(height: 14),
+                ...right,
+                const SizedBox(height: 8),
+              ],
+            ),
     );
   }
 }

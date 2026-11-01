@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ffi';
+import 'dart:io' show stderr;
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -12,7 +13,12 @@ const _chunkSize = 25;
 
 class _WorkerInit {
   const _WorkerInit(
-      this.out, this.libPath, this.device, this.channelCount, this.bias);
+    this.out,
+    this.libPath,
+    this.device,
+    this.channelCount,
+    this.bias,
+  );
 
   final SendPort out;
   final String libPath;
@@ -22,27 +28,41 @@ class _WorkerInit {
 }
 
 /// Callback paczek wolany z watku BLE. Przechwytuje tylko zmienne `final`.
-NativeCallable<BaChunkCallback> createChunkCallback(SendPort port, int snIdx,
-    int firstChannelIdx, int channels, int firstContactIdx) {
+NativeCallable<BaChunkCallback> createChunkCallback(
+  SendPort port,
+  int snIdx,
+  int firstChannelIdx,
+  int channels,
+  int firstContactIdx,
+) {
   final out = port;
   final sn0 = snIdx;
   final ch0 = firstChannelIdx;
   final n = channels;
   final ct0 = firstContactIdx;
-  return NativeCallable<BaChunkCallback>.isolateGroupBound(
-      (Pointer<Pointer<Void>> data, int size, Pointer<Void> user) {
+  return NativeCallable<BaChunkCallback>.isolateGroupBound((
+    Pointer<Pointer<Void>> data,
+    int size,
+    Pointer<Void> user,
+  ) {
     final sn = data[sn0].cast<Uint64>().asTypedList(size);
     final flat = Float64List(n * size);
     for (var c = 0; c < n; c++) {
-      flat.setRange(c * size, (c + 1) * size,
-          data[ch0 + c].cast<Double>().asTypedList(size));
+      flat.setRange(
+        c * size,
+        (c + 1) * size,
+        data[ch0 + c].cast<Double>().asTypedList(size),
+      );
     }
     Uint8List? contact;
     if (ct0 >= 0) {
       contact = Uint8List(n * size);
       for (var c = 0; c < n; c++) {
-        contact.setRange(c * size, (c + 1) * size,
-            data[ct0 + c].cast<Uint8>().asTypedList(size));
+        contact.setRange(
+          c * size,
+          (c + 1) * size,
+          data[ct0 + c].cast<Uint8>().asTypedList(size),
+        );
       }
     }
     out.send([
@@ -58,8 +78,7 @@ NativeCallable<BaChunkCallback> createChunkCallback(SendPort port, int snIdx,
 
 NativeCallable<BaVoidCallback> createDisconnectCallback(SendPort port) {
   final out = port;
-  return NativeCallable<BaVoidCallback>.isolateGroupBound(
-      (Pointer<Void> user) {
+  return NativeCallable<BaVoidCallback>.isolateGroupBound((Pointer<Void> user) {
     out.send(['disconnected', DateTime.now().microsecondsSinceEpoch / 1e6]);
   });
 }
@@ -79,13 +98,19 @@ void _worker(_WorkerInit init) {
   void shutdown() {
     if (closed) return;
     closed = true;
+    // Zamkniecie z logami diagnostycznymi (zmiana z pomoca AI, Claude).
     if (core != null && mgr != null) {
+      out.send(['log', 'shutdown: stopStream']);
       if (streaming) core.stopStream(mgr, nullptr, nullptr);
       core.setCallbackChunk(mgr, nullptr, nullptr);
       core.setCallbackDisconnect(mgr, nullptr, nullptr);
+      out.send(['log', 'shutdown: disconnect']);
       core.disconnect(mgr);
+      out.send(['log', 'shutdown: managerFree']);
       core.managerFree(mgr);
+      out.send(['log', 'shutdown: coreClose']);
       core.coreClose();
+      out.send(['log', 'shutdown: coreClose done']);
     }
     chunkCb?.close();
     discCb?.close();
@@ -182,22 +207,22 @@ class ChunkAssembler {
     if (expected != null && firstSample != expected) {
       out.add(GapEvent(firstSample: expected, count: firstSample - expected));
     }
-    out.add(EegPacket(
-      firstSample: firstSample,
-      tRecv: tRecv,
-      samples: [
-        for (var c = 0; c < channels; c++)
-          flat.sublist(c * size, (c + 1) * size),
-      ],
-      contact: contact == null
-          ? null
-          : [
-              for (var c = 0; c < channels; c++)
-                [
-                  for (var i = 0; i < size; i++) contact[c * size + i] != 0,
-                ],
-            ],
-    ));
+    out.add(
+      EegPacket(
+        firstSample: firstSample,
+        tRecv: tRecv,
+        samples: [
+          for (var c = 0; c < channels; c++)
+            flat.sublist(c * size, (c + 1) * size),
+        ],
+        contact: contact == null
+            ? null
+            : [
+                for (var c = 0; c < channels; c++)
+                  [for (var i = 0; i < size; i++) contact[c * size + i] != 0],
+              ],
+      ),
+    );
     _next = firstSample + size;
     return out;
   }
@@ -234,6 +259,14 @@ class BrainAccessMacSource implements EegSource {
   bool _stopping = false;
   bool _started = false;
 
+  /// Zmiany z pomoca AI (Claude): straznik ciszy w strumieniu i limit czasu
+  /// zamkniecia, zeby sesja nie wisiala, gdy SDK nie zglosi rozlaczenia
+  /// albo watek roboczy nie odpowiada.
+  static const _silenceLimit = Duration(seconds: 3);
+  static const _stopTimeout = Duration(seconds: 3);
+  final _sinceChunk = Stopwatch();
+  Timer? _watchdog;
+
   @override
   Stream<StreamItem> get items => _controller.stream;
 
@@ -245,8 +278,13 @@ class BrainAccessMacSource implements EegSource {
     port.listen(_onMessage);
     _isolate = await Isolate.spawn(
       _worker,
-      _WorkerInit(port.sendPort, libPath, deviceName, channelNames?.length,
-          biasChannels),
+      _WorkerInit(
+        port.sendPort,
+        libPath,
+        deviceName,
+        channelNames?.length,
+        biasChannels,
+      ),
     );
   }
 
@@ -260,17 +298,37 @@ class BrainAccessMacSource implements EegSource {
           return;
         }
         _channels = msg[2] as int;
-        _controller.add(SegmentStart(StreamInfo(
-          sourceId: 'brainaccess',
-          fs: _fs,
-          chunkSize: _chunkSize,
-          channels: [
-            for (var c = 0; c < _channels; c++)
-              Channel(channelNames?[c] ?? 'ch${c + 1}'),
-          ],
-        )));
+        _sinceChunk
+          ..reset()
+          ..start();
+        _watchdog = Timer.periodic(const Duration(milliseconds: 500), (_) {
+          if (_stopping || _sinceChunk.elapsed < _silenceLimit) return;
+          _controller.add(
+            DisconnectedEvent(
+              reason: 'data_timeout',
+              tRecv: DateTime.now().microsecondsSinceEpoch / 1e6,
+            ),
+          );
+          unawaited(stop());
+        });
+        _controller.add(
+          SegmentStart(
+            StreamInfo(
+              sourceId: 'brainaccess',
+              fs: _fs,
+              chunkSize: _chunkSize,
+              channels: [
+                for (var c = 0; c < _channels; c++)
+                  Channel(channelNames?[c] ?? 'ch${c + 1}'),
+              ],
+            ),
+          ),
+        );
       case 'chunk':
         if (_stopping) return;
+        _sinceChunk
+          ..reset()
+          ..start();
         for (final i in _assembler.chunk(
           firstSample: msg[1] as int,
           tRecv: msg[2] as double,
@@ -283,41 +341,52 @@ class BrainAccessMacSource implements EegSource {
         }
       case 'disconnected':
         if (_stopping) return;
-        _controller.add(DisconnectedEvent(
-            reason: 'sdk_disconnect', tRecv: msg[1] as double));
+        _controller.add(
+          DisconnectedEvent(reason: 'sdk_disconnect', tRecv: msg[1] as double),
+        );
         unawaited(stop());
       case 'error':
         if (_stopping) return;
-        _controller.add(DisconnectedEvent(
+        _controller.add(
+          DisconnectedEvent(
             reason: msg[1] as String,
-            tRecv: DateTime.now().microsecondsSinceEpoch / 1e6));
+            tRecv: DateTime.now().microsecondsSinceEpoch / 1e6,
+          ),
+        );
         if (_cmd == null) {
           unawaited(_finish());
         } else {
           unawaited(stop());
         }
+      case 'log':
+        stderr.writeln('[bacore] ${msg[1]}');
       case 'closed':
         unawaited(_finish());
     }
   }
 
   @override
-  Future<void> stop() async {
-    if (_stopping) return _closed.future;
-    _stopping = true;
-    final cmd = _cmd;
-    if (cmd == null) {
-      if (_isolate == null) {
-        await _finish();
+  Future<void> stop() {
+    if (!_stopping) {
+      _stopping = true;
+      final cmd = _cmd;
+      if (cmd == null) {
+        if (_isolate == null) {
+          unawaited(_finish());
+        }
+      } else {
+        cmd.send('stop');
       }
-    } else {
-      cmd.send('stop');
     }
-    return _closed.future;
+    // Gdy watek roboczy nie potwierdzi zamkniecia, konczymy bez niego. Dopoki
+    // laczy sie z czepkiem (_cmd == null), czekamy, zeby nie zostawic polaczenia.
+    if (_cmd == null) return _closed.future;
+    return _closed.future.timeout(_stopTimeout, onTimeout: _finish);
   }
 
   Future<void> _finish() async {
     if (_closed.isCompleted) return;
+    _watchdog?.cancel();
     _in?.close();
     _isolate?.kill();
     if (!_controller.isClosed) await _controller.close();

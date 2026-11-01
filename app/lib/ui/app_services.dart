@@ -47,12 +47,17 @@ class AppServices {
   Future<UpdateInfo?> checkForUpdate() {
     final fetch = updateFetch;
     if (fetch == null) return Future.value(null);
-    return UpdateChecker(currentVersion: appVersion, fetch: fetch, token: settings.updateToken).check();
+    return UpdateChecker(
+      currentVersion: appVersion,
+      fetch: fetch,
+      token: settings.updateToken,
+    ).check();
   }
 
   AppSettings get settings => AppSettings.load(repository);
 
-  bool get isDevice => _sourceOverride == null && settings.source == SourceKind.device;
+  bool get isDevice =>
+      _sourceOverride == null && settings.source == SourceKind.device;
   String get sourceType => isDevice ? 'device' : 'mock';
   String? get deviceIdentifier => isDevice ? settings.deviceName : null;
   String get sourceLabel {
@@ -67,6 +72,7 @@ class AppServices {
     s.training[protocol.id] = names;
     s.save(repository);
   }
+
   String get deviceModel => 'MAXI';
 
   /// Zrodlo EEG dla wybranego treningu wg ustawien (Demo lub czepek BrainAccess).
@@ -76,7 +82,10 @@ class AppServices {
     return () {
       final s = settings;
       if (s.source == SourceKind.device) {
-        if (s.deviceName.isEmpty) return UnavailableSource('Nie wybrano czepka. Wybierz go w ustawieniach.');
+        if (s.deviceName.isEmpty)
+          return UnavailableSource(
+            'Nie wybrano czepka. Wybierz go w ustawieniach.',
+          );
         if (Platform.isAndroid) {
           return BrainAccessAndroidSource(
             deviceName: s.deviceName,
@@ -85,7 +94,8 @@ class AppServices {
           );
         }
         final lib = findBacoreLib(override: s.libPath);
-        if (lib == null) return UnavailableSource('Nie znaleziono biblioteki libbacore.');
+        if (lib == null)
+          return UnavailableSource('Nie znaleziono biblioteki libbacore.');
         return BrainAccessMacSource(
           deviceName: s.deviceName,
           libPath: lib,
@@ -102,19 +112,47 @@ class AppServices {
     };
   }
 
-  SessionConfig sessionConfigFor(TrainingProtocol protocol, {bool calibrationOnly = false}) =>
-      configOverride ??
-      repository.sessionConfig(SessionConfig(
+  SessionConfig sessionConfigFor(
+    TrainingProtocol protocol, {
+    bool calibrationOnly = false,
+  }) {
+    final override = configOverride;
+    if (override != null) return override;
+    // Tryb testowy (zmiana z pomoca AI, Claude): krotkie kroki, bez powtorzen
+    // kroku z zamknietymi oczami. Pomija czasy zapisane w bazie.
+    if (settings.quickSession) {
+      return SessionConfig(
         protocol: protocol,
         trainingChannels: settings.trainingChannelsFor(protocol),
         calibrationOnly: calibrationOnly,
-      ));
+        calibrationS: 20,
+        calibrationMaxS: 40,
+        calibrationClosedS: 10,
+        calibrationResultS: 2,
+        maxClosedRepeats: 0,
+        blocks: 2,
+        blockS: 30,
+        breakS: 5,
+      );
+    }
+    return repository.sessionConfig(
+      SessionConfig(
+        protocol: protocol,
+        trainingChannels: settings.trainingChannelsFor(protocol),
+        calibrationOnly: calibrationOnly,
+      ),
+    );
+  }
 
   SessionConfig get sessionConfig => sessionConfigFor(TrainingProtocol.alfa);
 }
 
 class ServicesScope extends InheritedWidget {
-  const ServicesScope({super.key, required this.services, required super.child});
+  const ServicesScope({
+    super.key,
+    required this.services,
+    required super.child,
+  });
 
   final AppServices services;
 

@@ -16,14 +16,18 @@ class Px {
 
   static const _family = 'PressStart2P';
 
-  static TextStyle t(double size, {Color color = ink, double height = 1.6, bool shadow = false}) =>
-      TextStyle(
-        fontFamily: _family,
-        fontSize: size,
-        color: color,
-        height: height,
-        shadows: shadow ? const [Shadow(color: soft, offset: Offset(2, 2))] : null,
-      );
+  static TextStyle t(
+    double size, {
+    Color color = ink,
+    double height = 1.6,
+    bool shadow = false,
+  }) => TextStyle(
+    fontFamily: _family,
+    fontSize: size,
+    color: color,
+    height: height,
+    shadows: shadow ? const [Shadow(color: soft, offset: Offset(2, 2))] : null,
+  );
 
   static TextStyle get hero => t(64, height: 1.1, shadow: true);
   static TextStyle get display => t(40, height: 1.1, shadow: true);
@@ -34,12 +38,12 @@ class Px {
   static TextStyle get tiny => t(8, color: ink2, height: 1.7);
 
   static ThemeData get theme => ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: bg,
-        fontFamily: _family,
-        colorScheme: ColorScheme.fromSeed(seedColor: accent, surface: bg),
-        textTheme: TextTheme(bodyMedium: body),
-      );
+    useMaterial3: true,
+    scaffoldBackgroundColor: bg,
+    fontFamily: _family,
+    colorScheme: ColorScheme.fromSeed(seedColor: accent, surface: bg),
+    textTheme: TextTheme(bodyMedium: body),
+  );
 }
 
 /// Okno: gruba ramka, cienka ramka w środku, twardy cień.
@@ -59,19 +63,21 @@ class PkWindow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: shadow ? const EdgeInsets.only(right: 4, bottom: 4) : null,
-        decoration: BoxDecoration(
-          color: color,
-          border: Border.all(color: Px.ink, width: 3),
-          boxShadow: shadow ? const [BoxShadow(color: Px.soft, offset: Offset(4, 4))] : null,
-        ),
-        padding: const EdgeInsets.all(3),
-        child: Container(
-          decoration: BoxDecoration(border: Border.all(color: Px.ink, width: 1.5)),
-          padding: padding,
-          child: child,
-        ),
-      );
+    margin: shadow ? const EdgeInsets.only(right: 4, bottom: 4) : null,
+    decoration: BoxDecoration(
+      color: color,
+      border: Border.all(color: Px.ink, width: 3),
+      boxShadow: shadow
+          ? const [BoxShadow(color: Px.soft, offset: Offset(4, 4))]
+          : null,
+    ),
+    padding: const EdgeInsets.all(3),
+    child: Container(
+      decoration: BoxDecoration(border: Border.all(color: Px.ink, width: 1.5)),
+      padding: padding,
+      child: child,
+    ),
+  );
 }
 
 /// Trójkątny kursor menu.
@@ -82,10 +88,10 @@ class PkCursor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: size * 0.7,
-        height: size,
-        child: CustomPaint(painter: _CursorPainter()),
-      );
+    width: size * 0.7,
+    height: size,
+    child: CustomPaint(painter: _CursorPainter()),
+  );
 }
 
 class _CursorPainter extends CustomPainter {
@@ -96,7 +102,12 @@ class _CursorPainter extends CustomPainter {
       ..lineTo(size.width, size.height / 2)
       ..lineTo(0, size.height)
       ..close();
-    canvas.drawPath(path, Paint()..color = Px.ink..isAntiAlias = false);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Px.ink
+        ..isAntiAlias = false,
+    );
   }
 
   @override
@@ -121,29 +132,34 @@ class PkMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: onTap != null,
-        selected: selected,
-        label: label,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 44),
-            color: selected ? Px.accentLight : null,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(children: [
-              SizedBox(width: 18, child: selected ? const PkCursor() : null),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    button: onTap != null,
+    selected: selected,
+    label: label,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
+        color: selected ? Px.accentLight : null,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          children: [
+            SizedBox(width: 18, child: selected ? const PkCursor() : null),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(label, style: Px.t(12)),
                   if (sub != null) Text(sub!, style: Px.tiny),
-                ]),
+                ],
               ),
-              if (trailing != null) Text(trailing!, style: Px.tiny),
-            ]),
-          ),
+            ),
+            if (trailing != null) Text(trailing!, style: Px.tiny),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// Okno z wierszami menu.
@@ -154,14 +170,19 @@ class PkMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PkWindow(
-        padding: const EdgeInsets.all(6),
-        child: Column(children: rows),
-      );
+    padding: const EdgeInsets.all(6),
+    child: Column(children: rows),
+  );
 }
 
 /// Pojedyncza akcja jako okno z zaznaczonym wierszem.
 class PkAction extends StatelessWidget {
-  const PkAction({super.key, required this.label, required this.onTap, this.primary = true});
+  const PkAction({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.primary = true,
+  });
 
   final String label;
   final VoidCallback? onTap;
@@ -169,13 +190,20 @@ class PkAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Opacity(
-        opacity: onTap == null ? 0.45 : 1,
-        child: PkMenu(rows: [PkMenuRow(label: label, selected: primary, onTap: onTap)]),
-      );
+    opacity: onTap == null ? 0.45 : 1,
+    child: PkMenu(
+      rows: [PkMenuRow(label: label, selected: primary, onTap: onTap)],
+    ),
+  );
 }
 
 class PkDialog extends StatelessWidget {
-  const PkDialog({super.key, required this.text, this.color = Px.panel, this.more = true});
+  const PkDialog({
+    super.key,
+    required this.text,
+    this.color = Px.panel,
+    this.more = true,
+  });
 
   final String text;
   final Color color;
@@ -183,17 +211,17 @@ class PkDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PkWindow(
-        color: color,
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(text, style: Px.t(11, height: 1.8)),
-          if (more)
-            const Align(
-              alignment: Alignment.centerRight,
-              child: _DownMark(),
-            ),
-        ]),
-      );
+    color: color,
+    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(text, style: Px.t(11, height: 1.8)),
+        if (more)
+          const Align(alignment: Alignment.centerRight, child: _DownMark()),
+      ],
+    ),
+  );
 }
 
 class _DownMark extends StatelessWidget {
@@ -201,10 +229,10 @@ class _DownMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 12,
-        height: 8,
-        child: CustomPaint(painter: _DownPainter()),
-      );
+    width: 12,
+    height: 8,
+    child: CustomPaint(painter: _DownPainter()),
+  );
 }
 
 class _DownPainter extends CustomPainter {
@@ -215,7 +243,12 @@ class _DownPainter extends CustomPainter {
       ..lineTo(size.width, 0)
       ..lineTo(size.width / 2, size.height)
       ..close();
-    canvas.drawPath(path, Paint()..color = Px.ink..isAntiAlias = false);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Px.ink
+        ..isAntiAlias = false,
+    );
   }
 
   @override
@@ -224,7 +257,13 @@ class _DownPainter extends CustomPainter {
 
 /// Pasek wartości z ramką, opcjonalnym znacznikiem progu.
 class PkBar extends StatelessWidget {
-  const PkBar({super.key, required this.value, this.height = 16, this.marker, this.color = Px.accent});
+  const PkBar({
+    super.key,
+    required this.value,
+    this.height = 16,
+    this.marker,
+    this.color = Px.accent,
+  });
 
   final double value;
   final double height;
@@ -233,29 +272,36 @@ class PkBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: Px.panel,
-          border: Border.all(color: Px.ink, width: 2),
-        ),
-        child: LayoutBuilder(
-          builder: (context, c) => Stack(children: [
-            Container(width: c.maxWidth * value.clamp(0.0, 1.0), color: color),
-            if (marker != null)
-              Positioned(
-                left: c.maxWidth * marker!.clamp(0.0, 1.0) - 1,
-                top: -2,
-                bottom: -2,
-                child: Container(width: 3, color: Px.ink),
-              ),
-          ]),
-        ),
-      );
+    height: height,
+    decoration: BoxDecoration(
+      color: Px.panel,
+      border: Border.all(color: Px.ink, width: 2),
+    ),
+    child: LayoutBuilder(
+      builder: (context, c) => Stack(
+        children: [
+          Container(width: c.maxWidth * value.clamp(0.0, 1.0), color: color),
+          if (marker != null)
+            Positioned(
+              left: c.maxWidth * marker!.clamp(0.0, 1.0) - 1,
+              top: -2,
+              bottom: -2,
+              child: Container(width: 3, color: Px.ink),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Pasek segmentowy, np. postęp odliczania.
 class PkSegBar extends StatelessWidget {
-  const PkSegBar({super.key, required this.value, this.segments = 20, this.height = 18});
+  const PkSegBar({
+    super.key,
+    required this.value,
+    this.segments = 20,
+    this.height = 18,
+  });
 
   final double value;
   final int segments;
@@ -266,20 +312,27 @@ class PkSegBar extends StatelessWidget {
     final filled = (value.clamp(0.0, 1.0) * segments).floor();
     return Container(
       height: height,
-      decoration: BoxDecoration(color: Px.panel, border: Border.all(color: Px.ink, width: 2)),
-      child: Row(children: [
-        for (var i = 0; i < segments; i++)
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: i < filled ? Px.accent : Px.panel,
-                border: i == segments - 1
-                    ? null
-                    : const Border(right: BorderSide(color: Px.soft, width: 1)),
+      decoration: BoxDecoration(
+        color: Px.panel,
+        border: Border.all(color: Px.ink, width: 2),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < segments; i++)
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: i < filled ? Px.accent : Px.panel,
+                  border: i == segments - 1
+                      ? null
+                      : const Border(
+                          right: BorderSide(color: Px.soft, width: 1),
+                        ),
+                ),
               ),
             ),
-          ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -295,13 +348,16 @@ class PkLeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = Px.t(9, color: bold ? Px.ink : Px.ink2, height: 1.9);
-    return Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-      Text(label, style: style),
-      const SizedBox(width: 4),
-      const Expanded(child: _Dots()),
-      const SizedBox(width: 4),
-      Text(value, style: style.copyWith(color: Px.ink)),
-    ]);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(label, style: style),
+        const SizedBox(width: 4),
+        const Expanded(child: _Dots()),
+        const SizedBox(width: 4),
+        Text(value, style: style.copyWith(color: Px.ink)),
+      ],
+    );
   }
 }
 
@@ -309,13 +365,16 @@ class _Dots extends StatelessWidget {
   const _Dots();
 
   @override
-  Widget build(BuildContext context) => SizedBox(height: 14, child: CustomPaint(painter: _DotsPainter()));
+  Widget build(BuildContext context) =>
+      SizedBox(height: 14, child: CustomPaint(painter: _DotsPainter()));
 }
 
 class _DotsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = Px.ink2..isAntiAlias = false;
+    final p = Paint()
+      ..color = Px.ink2
+      ..isAntiAlias = false;
     for (var x = 0.0; x < size.width; x += 4) {
       canvas.drawRect(Rect.fromLTWH(x, size.height - 4, 2, 2), p);
     }
@@ -333,54 +392,113 @@ class PkBack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        label: 'Wstecz',
-        child: GestureDetector(
-          onTap: onPressed,
-          child: PkWindow(
-            padding: EdgeInsets.zero,
-            shadow: false,
-            child: SizedBox(
-              width: 34,
-              height: 34,
-              child: Center(child: Text('←', style: Px.t(18, height: 1))),
-            ),
-          ),
+    button: true,
+    label: 'Wstecz',
+    child: GestureDetector(
+      onTap: onPressed,
+      child: PkWindow(
+        padding: EdgeInsets.zero,
+        shadow: false,
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: Center(child: Text('←', style: Px.t(18, height: 1))),
         ),
-      );
+      ),
+    ),
+  );
 }
 
+/// Szerokie okno desktopowe (od 900 dp, jak na ekranie głównym).
+// Układ desktopowy (isWideLayout, ScreenFrame.wide, PkTwoPane): napisany z pomocą AI (Claude).
+bool isWideLayout(BuildContext context) =>
+    MediaQuery.sizeOf(context).width >= 900;
+
 /// Kolumna ekranu z marginesami, stopka z dopiskiem o prototypie.
+/// Z [wide] ekran jest szerszy (do 1040 dp), a akcje na dole zostają wąskie i wyśrodkowane.
 class ScreenFrame extends StatelessWidget {
-  const ScreenFrame({super.key, required this.child, this.bottom, this.footer = false});
+  const ScreenFrame({
+    super.key,
+    required this.child,
+    this.bottom,
+    this.footer = false,
+    this.wide = false,
+  });
 
   final Widget child;
   final Widget? bottom;
   final bool footer;
+  final bool wide;
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Px.bg,
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                child: Column(
-                  children: [
-                    Expanded(child: child),
-                    if (bottom != null) ...[const SizedBox(height: 12), bottom!],
-                    if (footer) ...[
-                      const SizedBox(height: 10),
-                      Text('Prototyp edukacyjny. To nie jest terapia ani diagnoza.',
-                          style: Px.tiny),
-                    ],
-                  ],
-                ),
-              ),
+    backgroundColor: Px.bg,
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: wide ? 1040 : 430),
+          child: Padding(
+            padding: wide
+                ? const EdgeInsets.fromLTRB(32, 24, 32, 20)
+                : const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
+              children: [
+                Expanded(child: child),
+                if (bottom != null) ...[
+                  const SizedBox(height: 12),
+                  if (wide)
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: bottom!,
+                    )
+                  else
+                    bottom!,
+                ],
+                if (footer) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Prototyp edukacyjny. To nie jest terapia ani diagnoza.',
+                    textAlign: wide ? TextAlign.center : null,
+                    style: Px.tiny,
+                  ),
+                ],
+              ],
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
+}
+
+/// Dwie kolumny na szerokim oknie. Każda przewija się osobno.
+class PkTwoPane extends StatelessWidget {
+  const PkTwoPane({
+    super.key,
+    required this.left,
+    required this.right,
+    this.leftFlex = 1,
+    this.rightFlex = 1,
+  });
+
+  final List<Widget> left;
+  final List<Widget> right;
+  final int leftFlex;
+  final int rightFlex;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Expanded(
+        flex: leftFlex,
+        child: ListView(children: left),
+      ),
+      const SizedBox(width: 32),
+      Expanded(
+        flex: rightFlex,
+        child: ListView(children: right),
+      ),
+    ],
+  );
 }

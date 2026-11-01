@@ -16,6 +16,7 @@ class AppSettings {
     this.libPath = '',
     this.showInstruction = true,
     this.checkUpdates = true,
+    this.quickSession = false,
     this.updateToken = '',
     this.skippedVersion = '',
     Map<String, List<String>>? training,
@@ -34,6 +35,10 @@ class AppSettings {
   /// Sprawdzanie nowych wydan na GitHubie przy starcie.
   bool checkUpdates;
 
+  /// Krotka sesja do testow (zmiana z pomoca AI, Claude): okolo 2 minut
+  /// zamiast okolo 12. Takie sesje licza sie do historii jak zwykle.
+  bool quickSession;
+
   /// Token GitHub z prawem odczytu, tylko dla prywatnego repozytorium.
   String updateToken;
 
@@ -50,12 +55,14 @@ class AppSettings {
     'lib': 'bacore_lib',
     'instruction': 'show_instruction',
     'updates': 'check_updates',
+    'quick': 'quick_session',
     'token': 'update_token',
     'skipped': 'update_skipped',
   };
 
   /// Zrodlo Demo zawsze uzywa nazw 10-20.
-  ChannelNaming get effectiveNaming => source == SourceKind.demo ? ChannelNaming.manufacturer : naming;
+  ChannelNaming get effectiveNaming =>
+      source == SourceKind.demo ? ChannelNaming.manufacturer : naming;
 
   List<String> get channelNames => effectiveNaming == ChannelNaming.manufacturer
       ? maxiManufacturerNames
@@ -84,19 +91,39 @@ class AppSettings {
     ].take(2).toList();
   }
 
-  static const _posterior = ['O1', 'O2', 'Oz', 'POz', 'PO3', 'PO4', 'Pz', 'P3', 'P4', 'P7', 'P8'];
+  static const _posterior = [
+    'O1',
+    'O2',
+    'Oz',
+    'POz',
+    'PO3',
+    'PO4',
+    'Pz',
+    'P3',
+    'P4',
+    'P7',
+    'P8',
+  ];
 
   /// Kanaly treningowe z tych, ktore maja kontakt: najpierw tyl glowy (alfa),
   /// w razie braku pierwsze z kontaktem, do czterech.
   static List<String> channelsWithContact(List<ChannelContact> contacts) {
-    final ok = [for (final c in contacts) if (c.contact) c.name];
-    final back = [for (final n in _posterior) if (ok.contains(n)) n];
+    final ok = [
+      for (final c in contacts)
+        if (c.contact) c.name,
+    ];
+    final back = [
+      for (final n in _posterior)
+        if (ok.contains(n)) n,
+    ];
     return (back.isNotEmpty ? back : ok).take(4).toList();
   }
 
   static AppSettings load(SessionRepository repo) {
     final s = AppSettings(
-      source: repo.setting(_keys['source']!) == 'device' ? SourceKind.device : SourceKind.demo,
+      source: repo.setting(_keys['source']!) == 'device'
+          ? SourceKind.device
+          : SourceKind.demo,
       deviceName: repo.setting(_keys['device']!) ?? '',
       naming: repo.setting(_keys['naming']!) == 'numbered'
           ? ChannelNaming.numbered
@@ -104,6 +131,7 @@ class AppSettings {
       libPath: repo.setting(_keys['lib']!) ?? '',
       showInstruction: repo.setting(_keys['instruction']!) != 'off',
       checkUpdates: repo.setting(_keys['updates']!) != 'off',
+      quickSession: repo.setting(_keys['quick']!) == 'on',
       updateToken: repo.setting(_keys['token']!) ?? '',
       skippedVersion: repo.setting(_keys['skipped']!) ?? '',
     );
@@ -115,12 +143,19 @@ class AppSettings {
   }
 
   void save(SessionRepository repo) {
-    repo.setSetting(_keys['source']!, source == SourceKind.device ? 'device' : 'demo');
+    repo.setSetting(
+      _keys['source']!,
+      source == SourceKind.device ? 'device' : 'demo',
+    );
     repo.setSetting(_keys['device']!, deviceName);
-    repo.setSetting(_keys['naming']!, naming == ChannelNaming.numbered ? 'numbered' : 'manufacturer');
+    repo.setSetting(
+      _keys['naming']!,
+      naming == ChannelNaming.numbered ? 'numbered' : 'manufacturer',
+    );
     repo.setSetting(_keys['lib']!, libPath);
     repo.setSetting(_keys['instruction']!, showInstruction ? 'on' : 'off');
     repo.setSetting(_keys['updates']!, checkUpdates ? 'on' : 'off');
+    repo.setSetting(_keys['quick']!, quickSession ? 'on' : 'off');
     repo.setSetting(_keys['token']!, updateToken);
     repo.setSetting(_keys['skipped']!, skippedVersion);
     for (final p in TrainingProtocol.all) {
