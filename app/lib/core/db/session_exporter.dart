@@ -47,13 +47,12 @@ class SessionExporter {
   String _events(int id) {
     final b = StringBuffer('typ\tnr\tczas_ms\tkoniec_ms\twartosc\tszczegoly\n');
     final s = repo.db.select(
-      'SELECT s.created_at, s.status, s.source_type, s.mood_after, p.name AS protocol '
+      'SELECT s.created_at, s.status, s.source_type, p.name AS protocol '
       'FROM sessions s JOIN protocols p ON p.id = s.protocol_id WHERE s.id = ?',
       [id],
     ).first;
     b.writeln(
-      'sesja\t$id\t\t\t${s['status']}\t${s['protocol']} ${s['source_type']} ${s['created_at']}'
-      ' nastroj=${s['mood_after'] ?? ''}',
+      'sesja\t$id\t\t\t${s['status']}\t${s['protocol']} ${s['source_type']} ${s['created_at']}',
     );
     for (final c in repo.db.select(
       'SELECT * FROM calibrations WHERE session_id = ? ORDER BY attempt_no',

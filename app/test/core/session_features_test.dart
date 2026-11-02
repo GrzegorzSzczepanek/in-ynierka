@@ -176,7 +176,7 @@ void main() {
     });
     tearDown(() => db.close());
 
-    test('sesja z ocenami: kalibracja do ponownego uzycia, nastroj i seria', () async {
+    test('sesja z ocenami: kalibracja do ponownego uzycia i seria', () async {
       final p = SessionPersistence.begin(
           repo: repo, config: cfg, sourceType: 'mock', appVersion: '0', rawDir: tmp.path);
       late SessionController c;
@@ -193,43 +193,57 @@ void main() {
       });
       final r = await c.run();
       await p.finish(r);
-      repo.setMood(p.sessionId, 4);
 
       final stored = repo.lastCalibration(TrainingProtocol.alfa)!;
       expect(stored.thresholdY, r.calibrations.single.result.thresholdY);
       expect(stored.alphaRatio, closeTo(6.25, 2.5));
       expect(stored.alphaPeakHz, closeTo(10, 0.6));
       expect(repo.lastCalibration(TrainingProtocol.skupienie), isNull);
-      expect(repo.recentMoodAverage(), 4.0);
       expect(db.db.select('SELECT control_rating FROM blocks ORDER BY block_no').map((x) => x['control_rating']),
           [3, null]);
       expect(repo.lastSessionTargetShare(), inInclusiveRange(0, 1));
       expect(repo.streakDays(DateTime.now()), 1);
       expect(repo.validMinutesSince(DateTime.now().subtract(const Duration(days: 1))), greaterThan(0));
-      expect(() => repo.setMood(p.sessionId, 7), throwsArgumentError);
-      expect(() => db.db.execute('UPDATE sessions SET mood_after = 9'), throwsA(isA<SqliteException>()));
     });
 
-    test('migracja bazy v1 do v2 dodaje kolumny i zachowuje dane', () {
+    test('migracja bazy v1 do v3 dodaje kolumny, usuwa nastroj i zachowuje dane', () {
       final raw = sqlite3.openInMemory();
       final v1 = schemaSql
-          .replaceAll(RegExp(r'  mood_after INTEGER CHECK[^\n]*\n'), '')
           .replaceAll('  alpha_ratio REAL,\n  alpha_peak_hz REAL,\n', '')
           .replaceAll(RegExp(r'  control_rating INTEGER CHECK[^\n]*\n'), '');
       raw.execute('PRAGMA foreign_keys = ON');
       raw.execute(v1);
       raw.execute(seedSql);
       raw.execute('PRAGMA user_version = 1');
-      final cols = raw.select('PRAGMA table_info(sessions)').map((r) => r['name']);
-      expect(cols.contains('mood_after'), isFalse);
 
       final migrated = AppDatabase.wrap(raw);
-      expect(migrated.db.select('PRAGMA user_version').first.values.first, 2);
-      expect(migrated.db.select('PRAGMA table_info(sessions)').map((r) => r['name']), contains('mood_after'));
+      expect(migrated.db.select('PRAGMA user_version').first.values.first, 3);
+      expect(migrated.db.select('PRAGMA table_info(sessions)').map((r) => r['name']), isNot(contains('mood_after')));
       expect(migrated.db.select('PRAGMA table_info(blocks)').map((r) => r['name']), contains('control_rating'));
       expect(migrated.db.select('PRAGMA table_info(calibrations)').map((r) => r['name']),
           containsAll(['alpha_ratio', 'alpha_peak_hz']));
       expect(migrated.db.select('SELECT COUNT(*) c FROM avatar_stages').first['c'], 6);
+      migrated.close();
+    });
+
+    test('migracja bazy v2 do v3 usuwa nastroj i zachowuje sesje', () {
+      final raw = sqlite3.openInMemory();
+      raw.execute('PRAGMA foreign_keys = OFF');
+      raw.execute(schemaSql);
+      raw.execute(seedSql);
+      raw.execute('ALTER TABLE sessions ADD COLUMN mood_after INTEGER');
+      raw.execute(
+        "INSERT INTO sessions (protocol_id, source_type, created_at, planned_duration_s, app_version, mood_after) "
+        "VALUES (1, 'mock', '2026-10-20T10:00:00', 600, '0', 3)",
+      );
+      raw.execute('PRAGMA user_version = 2');
+
+      final migrated = AppDatabase.wrap(raw);
+      expect(migrated.db.select('PRAGMA user_version').first.values.first, 3);
+      expect(migrated.db.select('PRAGMA table_info(sessions)').map((r) => r['name']), isNot(contains('mood_after')));
+      final row = migrated.db.select('SELECT created_at, planned_duration_s FROM sessions').single;
+      expect(row['created_at'], '2026-10-20T10:00:00');
+      expect(row['planned_duration_s'], 600);
       migrated.close();
     });
   });

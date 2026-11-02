@@ -35,8 +35,6 @@ class SessionFlowScreen extends StatefulWidget {
 
 class _SessionFlowScreenState extends State<SessionFlowScreen> {
   SessionController? _controller;
-  int? _sessionId;
-  int? _mood;
   StreamSubscription<SessionSnapshot>? _sub;
   late SessionConfig _config;
   SessionSnapshot? _snapshot;
@@ -69,7 +67,6 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       calibrationOnly: widget.calibrationOnly,
     );
     _result = null;
-    _mood = null;
     _log.clear();
     _history.clear();
     _lastRewards = 0;
@@ -83,7 +80,6 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       appVersion: services.appVersion,
       rawDir: services.rawDir,
     );
-    _sessionId = persistence.sessionId;
     final controller = _controller = SessionController(
       sourceFactory: services.sourceFactoryFor(widget.protocol),
       config: _config,
@@ -151,11 +147,6 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
   void _finish() => _controller?.finish();
 
   void _leave() {
-    final id = _sessionId;
-    final mood = _mood;
-    if (id != null && mood != null && (_result?.countsForProgress ?? false)) {
-      ServicesScope.of(context).repository.setMood(id, mood);
-    }
     Navigator.of(context).pop();
   }
 
@@ -206,8 +197,6 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
         recent: _recent,
         onDone: _leave,
         protocol: widget.protocol,
-        mood: _mood,
-        onMood: (v) => setState(() => _mood = v),
       );
     }
     if (s == null) {

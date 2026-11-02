@@ -358,14 +358,6 @@ class SessionRepository {
     return v == null ? 0 : (v as num) / 60;
   }
 
-  void setMood(int sessionId, int rating) {
-    if (rating < 1 || rating > 5) throw ArgumentError('Ocena 1..5');
-    _db.execute('UPDATE sessions SET mood_after = ? WHERE id = ?', [
-      rating,
-      sessionId,
-    ]);
-  }
-
   /// Ostatnia udana kalibracja danego treningu (do pominiecia kalibracji).
   StoredCalibration? lastCalibration(TrainingProtocol protocol) {
     final r = _db.select(
@@ -404,16 +396,6 @@ class SessionRepository {
         protocol: TrainingProtocol.byDbName(r['protocol'] as String),
       ),
   ];
-
-  /// Srednia ocen samopoczucia z ostatnich [n] sesji (1..5) lub null.
-  double? recentMoodAverage({int n = 5}) {
-    final r = _db.select(
-      'SELECT AVG(mood_after) AS m FROM (SELECT mood_after FROM sessions '
-      'WHERE mood_after IS NOT NULL ORDER BY id DESC LIMIT ?)',
-      [n],
-    ).first['m'];
-    return (r as num?)?.toDouble();
-  }
 
   /// Udzial czasu w celu w ostatniej sesji z blokami (0..1) lub null.
   double? lastSessionTargetShare() {

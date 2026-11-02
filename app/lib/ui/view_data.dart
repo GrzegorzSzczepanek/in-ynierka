@@ -10,7 +10,6 @@ HomeData homeData(
 }) {
   final t = now ?? DateTime.now();
   final current = repo.unlockedStages().last;
-  final mood = repo.recentMoodAverage();
   final weekGoal = 3.0 * trainingMinutes;
   return HomeData(
     stageNo: current.sortOrder,
@@ -19,7 +18,6 @@ HomeData homeData(
     energy:
         (repo.validMinutesSince(t.subtract(const Duration(days: 7))) / weekGoal)
             .clamp(0.0, 1.0),
-    mood: mood == null ? null : ((mood - 1) / 4).clamp(0.0, 1.0),
     focus: repo.lastSessionTargetShare(),
     streakDays: repo.streakDays(t),
     sourceLabel: sourceLabel,

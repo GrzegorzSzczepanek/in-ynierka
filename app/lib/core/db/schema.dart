@@ -1,5 +1,5 @@
 /// Schemat wersja 5 (docs/diagrams/schema_v5.dbml) wraz z ograniczeniami CHECK.
-const schemaVersion = 2;
+const schemaVersion = 3;
 
 const schemaSql = '''
 CREATE TABLE processing_configs (
@@ -97,7 +97,6 @@ CREATE TABLE sessions (
     CHECK (status IN ('in_progress', 'completed', 'interrupted', 'connection_lost')),
   app_version TEXT NOT NULL,
   firmware TEXT,
-  mood_after INTEGER CHECK (mood_after IS NULL OR mood_after BETWEEN 1 AND 5),
   CHECK ((source_type = 'device') = (device_id IS NOT NULL))
 );
 
@@ -213,6 +212,9 @@ ALTER TABLE calibrations ADD COLUMN alpha_ratio REAL;
 ALTER TABLE calibrations ADD COLUMN alpha_peak_hz REAL;
 ALTER TABLE blocks ADD COLUMN control_rating INTEGER
   CHECK (control_rating IS NULL OR control_rating BETWEEN 1 AND 5);
+''',
+  3: '''
+ALTER TABLE sessions DROP COLUMN mood_after;
 ''',
 };
 

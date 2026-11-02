@@ -13,7 +13,6 @@ class HomeData {
     required this.stageName,
     required this.trainingMinutes,
     this.energy = 0,
-    this.mood,
     this.focus,
     this.streakDays = 0,
     this.sourceLabel = '',
@@ -25,9 +24,6 @@ class HomeData {
 
   /// Poprawne minuty z ostatnich 7 dni wzgledem celu tygodnia (0..1).
   final double energy;
-
-  /// Srednia z ostatnich ocen samopoczucia (0..1) lub null, gdy brak ocen.
-  final double? mood;
 
   /// Udzial czasu w celu w ostatniej sesji (0..1) lub null.
   final double? focus;
@@ -90,8 +86,6 @@ class HomeScreen extends StatelessWidget {
           Text('źródło: ${data.sourceLabel}', style: Px.tiny),
         const SizedBox(height: 6),
         _stat('ENERG', data.energy),
-        const SizedBox(height: 6),
-        _stat('NASTR', data.mood ?? 0, unknown: data.mood == null),
         const SizedBox(height: 6),
         _stat('FOKUS', data.focus ?? 0, unknown: data.focus == null),
       ],

@@ -16,13 +16,7 @@ class SummaryScreen extends StatelessWidget {
     required this.recent,
     required this.onDone,
     this.protocol = TrainingProtocol.alfa,
-    this.mood,
-    this.onMood,
   });
-
-  /// Ocena samopoczucia 1..5 (opcjonalna), zapisywana przy "Zapisz i wroc".
-  final int? mood;
-  final ValueChanged<int>? onMood;
 
   final TrainingProtocol protocol;
   final SessionResult result;
@@ -186,17 +180,6 @@ class SummaryScreen extends StatelessWidget {
               ],
             ),
           );
-    final moodBox = onMood != null && blocks.isNotEmpty
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('JAK SIĘ CZUJESZ?', style: Px.t(10)),
-              Text('1 bardzo źle, 5 bardzo dobrze', style: Px.tiny),
-              const SizedBox(height: 6),
-              PkRating(value: mood, onChanged: onMood!, label: 'Samopoczucie'),
-            ],
-          )
-        : null;
     const gap = SizedBox(height: 12);
     return ScreenFrame(
       wide: wide,
@@ -223,7 +206,6 @@ class SummaryScreen extends StatelessWidget {
                     right: [
                       if (blocks.isNotEmpty) ...[rejectedWin, gap],
                       ?recentWin,
-                      if (moodBox != null) ...[gap, moodBox],
                     ],
                   ),
                 ),
@@ -244,7 +226,6 @@ class SummaryScreen extends StatelessWidget {
                   rejectedWin,
                 ],
                 if (recentWin != null) ...[gap, recentWin],
-                if (moodBox != null) ...[gap, moodBox],
                 const SizedBox(height: 8),
               ],
             ),

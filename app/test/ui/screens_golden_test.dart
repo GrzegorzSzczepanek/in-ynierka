@@ -32,8 +32,6 @@ void _ignore(TrainingProtocol _) {}
 
 void _rate(int _) {}
 
-void _mood(int _) {}
-
 Future<void> golden(WidgetTester t, String name, Widget screen) async {
   await pumpScreen(t, screen);
   await expectLater(find.byType(MaterialApp), matchesGoldenFile('../goldens/$name.png'));
@@ -46,7 +44,6 @@ void main() {
           stageName: 'dwa neurony',
           trainingMinutes: 9,
           energy: 0.7,
-          mood: 0.75,
           focus: 0.48,
           streakDays: 3,
         ),
@@ -68,7 +65,6 @@ void main() {
           stageName: 'dwa neurony',
           trainingMinutes: 9,
           energy: 0.7,
-          mood: 0.75,
           focus: 0.48,
           streakDays: 3,
         ),
@@ -249,8 +245,6 @@ void main() {
         blocks: blocks,
         controlRatings: const {1: 2, 2: 3, 3: 4},
       ),
-      mood: 4,
-      onMood: _mood,
       recent: [
         for (var i = 0; i < 5; i++)
           SessionRow(id: i, createdAt: DateTime(2026, 10, 20 + i), status: 'completed', validMinutes: 6.0 + i, blocksTotal: 3),
