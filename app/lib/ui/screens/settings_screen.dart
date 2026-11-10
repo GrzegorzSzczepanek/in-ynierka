@@ -283,7 +283,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 14),
         Text('NAZWY KANAŁÓW', style: Px.t(10)),
         const SizedBox(height: 6),
-        PkMenu(
+        if (device && _s.deviceModel != 'MAXI')
+          Text(
+            'Czepek ${_s.deviceModel}: nazwy elektrod nie są znane, kanały są numerowane (ch1 ... ch${names.length}).',
+            style: Px.tiny,
+          )
+        else
+          PkMenu(
           rows: [
             PkMenuRow(
               label: 'WG TABELI PRODUCENTA',

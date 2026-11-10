@@ -61,20 +61,32 @@ class AppSettings {
   };
 
   /// Zrodlo Demo zawsze uzywa nazw 10-20.
-  ChannelNaming get effectiveNaming =>
-      source == SourceKind.demo ? ChannelNaming.manufacturer : naming;
+  String get deviceModel =>
+      source == SourceKind.device ? deviceModelOf(deviceName) : 'MAXI';
+
+  ChannelNaming get effectiveNaming {
+    if (source == SourceKind.demo) return ChannelNaming.manufacturer;
+    if (deviceModel != 'MAXI') return ChannelNaming.numbered;
+    return naming;
+  }
 
   List<String> get channelNames => effectiveNaming == ChannelNaming.manufacturer
       ? maxiManufacturerNames
-      : numberedNames(maxiManufacturerNames.length);
+      : numberedNames(deviceModelChannels[deviceModel]!);
 
   /// Nazwa kanalu zapisanego w trybie producenta po zmianie nazewnictwa.
   List<String> trainingChannelsFor(TrainingProtocol p) {
-    final chosen = training[p.id];
-    if (chosen != null && chosen.isNotEmpty) return chosen;
-    return effectiveNaming == ChannelNaming.manufacturer
-        ? p.channels
-        : [for (final n in p.channels) _numberFor(n)];
+    final names = channelNames;
+    final chosen = [
+      for (final n in training[p.id] ?? const <String>[])
+        if (names.contains(n)) n,
+    ];
+    if (chosen.isNotEmpty) return chosen;
+    if (effectiveNaming == ChannelNaming.manufacturer) return p.channels;
+    if (deviceModel == 'MAXI') {
+      return [for (final n in p.channels) _numberFor(n)];
+    }
+    return names.take(4).toList();
   }
 
   String _numberFor(String name) {

@@ -36,6 +36,16 @@ const maxiManufacturerNames = [
   'PO3',
 ];
 
+const deviceModelChannels = {'MINI': 8, 'MIDI': 16, 'MAXI': 32};
+
+String deviceModelOf(String deviceName) {
+  final upper = deviceName.toUpperCase();
+  for (final model in deviceModelChannels.keys) {
+    if (upper.contains(model)) return model;
+  }
+  return 'MAXI';
+}
+
 List<String> numberedNames(int count) => [
   for (var i = 1; i <= count; i++) 'ch$i',
 ];

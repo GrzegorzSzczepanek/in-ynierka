@@ -23,6 +23,42 @@ void main() {
   });
   tearDown(() => db.close());
 
+  test('model czepka z nazwy urzadzenia i kanaly dla MIDI', () {
+    expect(deviceModelOf('BA MAXI 012'), 'MAXI');
+    expect(deviceModelOf('BA MIDI 0417'), 'MIDI');
+    expect(deviceModelOf('BA-MINI-3'), 'MINI');
+    expect(deviceModelOf('nieznany'), 'MAXI');
+
+    final midi = AppSettings(source: SourceKind.device, deviceName: 'BA MIDI 0417');
+    expect(midi.deviceModel, 'MIDI');
+    expect(midi.effectiveNaming, ChannelNaming.numbered);
+    expect(midi.channelNames, [for (var i = 1; i <= 16; i++) 'ch$i']);
+    expect(midi.trainingChannelsFor(TrainingProtocol.alfa), ['ch1', 'ch2', 'ch3', 'ch4']);
+    expect(midi.biasIndicesFor(TrainingProtocol.alfa), [0, 1]);
+
+    midi.training['alfa'] = ['ch12', 'ch30', 'O1'];
+    expect(midi.trainingChannelsFor(TrainingProtocol.alfa), ['ch12']);
+
+    final mini = AppSettings(source: SourceKind.device, deviceName: 'BA MINI 7');
+    expect(mini.channelNames.length, 8);
+
+    final maxi = AppSettings(source: SourceKind.device, deviceName: 'BA MAXI 012');
+    expect(maxi.channelNames.length, 32);
+    expect(maxi.trainingChannelsFor(TrainingProtocol.alfa), ['O1', 'O2']);
+  });
+
+  test('sesja z MIDI zapisuje model czepka w bazie', () {
+    AppSettings(source: SourceKind.device, deviceName: 'BA MIDI 0417').save(repo);
+    final services = AppServices(repository: repo, rawDir: '/tmp');
+    expect(services.deviceModel, 'MIDI');
+    final id = repo.ensureDevice(identifier: 'BA MIDI 0417', model: services.deviceModel);
+    final model = db.db
+        .select('SELECT dm.name n, dm.channel_count c FROM devices d JOIN device_models dm ON dm.id = d.model_id WHERE d.id = ?', [id])
+        .single;
+    expect(model['n'], 'MIDI');
+    expect(model['c'], 16);
+  });
+
   test('ustawienia: wartosci domyslne i zapis w bazie', () {
     final d = AppSettings.load(repo);
     expect(d.source, SourceKind.demo);

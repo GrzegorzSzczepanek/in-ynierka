@@ -393,6 +393,12 @@ void main() {
     await t.tap(find.text('BA MIDI 003'));
     await t.pump();
     expect(AppSettings.load(repo).deviceName, 'BA MIDI 003');
+    expect(AppSettings.load(repo).channelNames.length, 16);
+    expect(find.text('NUMERY'), findsNothing);
+    await t.tap(find.text('BA MAXI 012'));
+    await t.pump();
+    expect(AppSettings.load(repo).deviceName, 'BA MAXI 012');
+    expect(AppSettings.load(repo).channelNames.length, 32);
 
     // kanaly treningowe: O1 wylaczony, Pz dolozony
     await t.tap(find.text('O1').first);

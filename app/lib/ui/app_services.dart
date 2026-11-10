@@ -73,7 +73,7 @@ class AppServices {
     s.save(repository);
   }
 
-  String get deviceModel => 'MAXI';
+  String get deviceModel => settings.deviceModel;
 
   /// Zrodlo EEG dla wybranego treningu wg ustawien (Demo lub czepek BrainAccess).
   SourceFactory sourceFactoryFor(TrainingProtocol protocol) {

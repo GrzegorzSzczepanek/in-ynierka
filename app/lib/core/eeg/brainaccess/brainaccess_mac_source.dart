@@ -130,12 +130,8 @@ void _worker(_WorkerInit init) {
     }
     final info = core.deviceInfo(mgr);
     final electrodes = core.electrodeCount(info);
-    final n = init.channelCount ?? electrodes;
-    if (n > electrodes) {
-      out.send(['error', 'channels:$n>$electrodes']);
-      shutdown();
-      return;
-    }
+    final requested = init.channelCount ?? electrodes;
+    final n = requested > electrodes ? electrodes : requested;
     core.setDataStreamRate(mgr, baStreamRate250Hz);
     core.setChannelEnabled(mgr, baChannelSampleNumber, true);
     for (var c = 0; c < n; c++) {
