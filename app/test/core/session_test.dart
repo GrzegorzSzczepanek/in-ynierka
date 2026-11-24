@@ -163,6 +163,22 @@ void main() {
     expect(n, 2);
   });
 
+  // z pomocą AI (Claude)
+  test('rozlaczenie w drugim bloku: trening idzie dalej od kolejnego bloku', () async {
+    var n = 0;
+    final c = SessionController(
+      sourceFactory: () => n++ == 0 ? mock(disconnectAfter: 400) : mock(),
+      config: cfg,
+      delay: instant,
+    );
+    final (r, phases) = await run(c);
+    expect(phases, contains(SessionPhase.reconnecting));
+    expect(r.calibrations.length, 2);
+    expect(r.blocks.map((b) => b.blockNo), [1, 2, 3]);
+    expect(r.blocks.map((b) => b.calibrationAttempt), [1, 2, 2]);
+    expect(r.status, SessionStatus.completed);
+  });
+
   test('trzy nieudane proby laczenia na starcie wracaja do wyboru urzadzenia', () async {
     var n = 0;
     final c = SessionController(

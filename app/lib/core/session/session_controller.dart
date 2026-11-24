@@ -146,7 +146,6 @@ class SessionController {
     _threshold = s.thresholdY;
     _alphaRatio = s.alphaRatio;
     _alphaPeakHz = s.alphaPeakHz;
-    _blockNo = 0;
     _afterCalibration(_nowT);
   }
 
@@ -340,7 +339,10 @@ class SessionController {
     _closedRepeats = 0;
     _alphaRatio = null;
     _alphaPeakHz = null;
-    _blockNo = 0;
+    // Licznik bloków to liczba ukończonych bloków: po ponownym połączeniu
+    // trening idzie dalej od kolejnego bloku, a przerwany blok jest
+    // odrzucany (z pomocą AI (Claude)).
+    _blockNo = _blocks.length;
     _setPhase(SessionPhase.calibrating);
   }
 
@@ -423,7 +425,6 @@ class SessionController {
     }
     _baseline = result.baseline;
     _threshold = result.thresholdY;
-    _blockNo = 0;
     if (config.closedStep) {
       _startClosed(t);
     } else {
